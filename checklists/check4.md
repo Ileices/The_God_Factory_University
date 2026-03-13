@@ -415,7 +415,7 @@ the vision of a real, fully functional AI-powered university.
 - [x] Placement test foundation working (Phase D.3)
 - [x] Student profile and basic statistics (Phase D.6, D.7)
 - [ ] Batch render overnight pass with error recovery
-- [ ] Degree + grading + deadlines + achievements validated end-to-end
+- [x] Degree + grading + deadlines + achievements validated end-to-end
 
 ### F.3 University Ready
 - [x] Full walkthrough wizard for every provider (Phase C.2-C.11)
