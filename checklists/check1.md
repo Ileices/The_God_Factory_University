@@ -112,9 +112,9 @@ Cross-reference: [check2.md](check2.md) covers the engineering contract and inte
 - [x] All core module imports succeed (verified, including help_registry and app_docs)
 - [x] First end-to-end render + playback validated (1 lecture)
 - [ ] Minimum 3-lecture render and playback pass
-- [ ] Curriculum import/export roundtrip pass
-- [ ] Professor chat, quiz, grading, curriculum generation pass (happy path)
-- [ ] Deadlines mode on/off behavior validated
+- [x] Curriculum import/export roundtrip pass
+- [x] Professor chat, quiz, grading, curriculum generation pass (happy path)
+- [x] Deadlines mode on/off behavior validated
 - [ ] Transcript CSV/JSON validated
 - [ ] No blocker errors in terminal during 30-minute exploratory run
 - [x] Streamlit app launches and all 11 sidebar pages are reachable

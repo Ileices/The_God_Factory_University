@@ -98,13 +98,13 @@ Cross-reference: [check1.md](check1.md) covers the product roadmap and delivery 
   - video minimal render
 - [x] Page compile test verified for all 9 files in `pages/` (including 09_Diagnostics)
 - [x] All 6 core modules import verified (database, providers, professor, audio, video, theme)
-- [ ] Add regression test for known bug classes:
+- [x] Add regression test for known bug classes:
   - signature mismatch
   - missing optional settings
   - invalid JSON from LLM
   - non-playable MP4 output
   - Python 3.9 type annotation compatibility
-- [ ] Define "green build" gate before merging feature work
+- [x] Define "green build" gate before merging feature work
 
 ## H. Operations and Observability
 - [x] Add structured logs for render jobs, provider calls, and import operations
@@ -135,10 +135,10 @@ Cross-reference: [check1.md](check1.md) covers the product roadmap and delivery 
 - [ ] 3-lecture end-to-end pass (import -> render -> play -> grade)
 
 ### Milestone 2: University Beta
-- [ ] Degree + grading + deadlines + achievements validated end-to-end
+- [x] Degree + grading + deadlines + achievements validated end-to-end
 - [ ] Batch render overnight pass with recovery from one forced failure
 - [ ] 2 provider backends validated (1 local, 1 cloud)
-- [ ] XP/level/achievement flow verified across 10+ interactions
+- [x] XP/level/achievement flow verified across 10+ interactions
 
 ### Milestone 3: Public-Ready Build
 - [ ] Full smoke matrix green on fresh Windows setup (Python 3.9+)
@@ -151,7 +151,7 @@ Cross-reference: [check1.md](check1.md) covers the product roadmap and delivery 
 - [x] P0: Run import check for `app.py` and every file in `pages/` (DONE - all compile)
 - [x] P0: End-to-end workflow verified: import -> render -> progress -> grade -> GPA (23/24 tests pass)
 - [x] P0: Streamlit runtime launch verified (health endpoint OK, empty DB cold start clean)
-- [ ] P1: Add automated contract test to prevent future page/backend drift
+- [x] P1: Add automated contract test to prevent future page/backend drift
 - [x] P1: Diagnostics page created (`pages/09_Diagnostics.py`): env, deps, DB stats, LLM test, TTS test, compile check
 - [ ] P1: Validate at least 1 LLM provider end-to-end (Ollama recommended for local)
 - [x] P1: Comprehensive help system with contextual navigation
