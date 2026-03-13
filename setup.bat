@@ -8,10 +8,22 @@ where python >nul 2>nul
 if %ERRORLEVEL% NEQ 0 (
   where python3 >nul 2>nul
   if %ERRORLEVEL% NEQ 0 (
-    echo [SETUP] Python not found. Install Python 3.9+ from https://www.python.org/downloads/
-    echo [SETUP] Make sure to check "Add Python to PATH" during installation.
-    pause
-    exit /b 1
+    echo [SETUP] Python not found on this computer.
+    if exist "install_python.bat" (
+      echo [SETUP] Running Python auto-installer...
+      call install_python.bat
+      if %ERRORLEVEL% NEQ 0 (
+        echo [SETUP] Python installation failed. Cannot continue.
+        pause
+        exit /b 1
+      )
+      set "PATH=%LOCALAPPDATA%\Programs\Python\Python311;%LOCALAPPDATA%\Programs\Python\Python311\Scripts;%PATH%"
+    ) else (
+      echo [SETUP] Install Python 3.9+ from https://www.python.org/downloads/
+      echo [SETUP] Make sure to check "Add Python to PATH" during installation.
+      pause
+      exit /b 1
+    )
   )
 )
 
