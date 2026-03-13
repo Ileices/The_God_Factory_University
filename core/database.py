@@ -1,6 +1,11 @@
 """
 SQLite persistence layer for Arcane University.
 All tables are created on first import. Thread-safe via WAL mode.
+
+Sub-modules (DEVELOPMENT.md Rule 5):
+  - db_achievements.py  — achievement defs, seeding, triggers
+  - db_grades.py        — GPA, grade scale, degree tracks
+  - db_shims.py         — compatibility aliases for UI pages
 """
 from __future__ import annotations
 
@@ -10,6 +15,25 @@ import time
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
+
+# ─── Sub-module imports (canonical data & helpers) ──────────────────────────
+from core.db_achievements import (
+    _ACHIEVEMENT_DEFS,
+    seed_achievements as _seed_achievements_raw,
+    unlock_achievement as _unlock_achievement_raw,
+    get_achievements as _get_achievements_raw,
+    check_achievements_xp as _check_achievements_xp_raw,
+    check_achievements_degrees as _check_achievements_degrees_raw,
+)
+from core.db_grades import (
+    GRADE_SCALE,
+    DEGREE_TRACKS,
+    score_to_grade,
+    compute_gpa as _compute_gpa_raw,
+    credits_earned as _credits_earned_raw,
+    eligible_degrees as _eligible_degrees_raw,
+)
+from core.db_shims import make_shims
 
 DB_PATH = Path(__file__).resolve().parent.parent / "university.db"
 
@@ -351,72 +375,21 @@ def get_overdue(now: float | None = None) -> list[dict]:
     return [dict(r) for r in rows]
 
 
-# ─── GPA & Grades ──────────────────────────────────────────────────────────────
+# ─── GPA & Grades (delegated to db_grades.py) ─────────────────────────────────
 
-GRADE_SCALE = [
-    ("A+", 97, 4.0), ("A", 93, 4.0), ("A-", 90, 3.7),
-    ("B+", 87, 3.3), ("B", 83, 3.0), ("B-", 80, 2.7),
-    ("C+", 77, 2.3), ("C", 73, 2.0), ("C-", 70, 1.7),
-    ("D", 60, 1.0), ("F", 0, 0.0),
-]
-
-
-def score_to_grade(score: float) -> tuple[str, float]:
-    for letter, threshold, points in GRADE_SCALE:
-        if score >= threshold:
-            return letter, points
-    return "F", 0.0
+# score_to_grade, GRADE_SCALE, DEGREE_TRACKS imported at top
 
 
 def compute_gpa() -> tuple[float, int]:
-    with tx() as con:
-        rows = con.execute("SELECT score, max_score FROM assignments WHERE submitted_at IS NOT NULL").fetchall()
-    if not rows:
-        return 0.0, 0
-    total_points = 0.0
-    count = 0
-    for r in rows:
-        if r["score"] is not None and r["max_score"] and r["max_score"] > 0:
-            pct = (r["score"] / r["max_score"]) * 100
-            _, points = score_to_grade(pct)
-            total_points += points
-            count += 1
-    return (round(total_points / count, 2) if count else 0.0), count
-
-
-DEGREE_TRACKS = {
-    "Certificate":  {"min_credits": 15,  "min_gpa": 2.0},
-    "Associate":    {"min_credits": 60,  "min_gpa": 2.0},
-    "Bachelor":     {"min_credits": 120, "min_gpa": 2.0},
-    "Master":       {"min_credits": 150, "min_gpa": 3.0},
-    "Doctorate":    {"min_credits": 180, "min_gpa": 3.5},
-}
+    return _compute_gpa_raw(tx)
 
 
 def credits_earned() -> int:
-    with tx() as con:
-        row = con.execute(
-            """SELECT SUM(c.credits) as total
-               FROM courses c
-               WHERE c.id IN (
-                   SELECT DISTINCT l.course_id FROM lectures l
-                   JOIN progress p ON p.lecture_id = l.id
-                   WHERE p.status='completed'
-               )""",
-        ).fetchone()
-    return int(row["total"] or 0)
+    return _credits_earned_raw(tx)
 
 
 def eligible_degrees(gpa: float | None = None, credits: int | None = None) -> list[str]:
-    _gpa, count = compute_gpa()
-    if gpa is None:
-        gpa = _gpa
-    if credits is None:
-        credits = credits_earned()
-    return [
-        d for d, req in DEGREE_TRACKS.items()
-        if credits >= req["min_credits"] and gpa >= req["min_gpa"] and count > 0
-    ]
+    return _eligible_degrees_raw(tx, gpa, credits)
 
 
 # ─── Chat History ──────────────────────────────────────────────────────────────
@@ -438,7 +411,7 @@ def get_chat(session_id: str, limit: int = 50) -> list[dict]:
     return list(reversed([dict(r) for r in rows]))
 
 
-def save_llm_generated(content: str, content_type: str) -> int:
+def _save_llm_generated_canonical(content: str, content_type: str) -> int:
     with tx() as con:
         cur = con.execute(
             "INSERT INTO llm_generated (content,type) VALUES (?,?)", (content, content_type)
@@ -460,79 +433,27 @@ def mark_imported(row_id: int) -> None:
         con.execute("UPDATE llm_generated SET imported=1 WHERE id=?", (row_id,))
 
 
-# ─── Achievements ──────────────────────────────────────────────────────────────
-
-_ACHIEVEMENT_DEFS = [
-    ("first_lecture",   "Awakening",        "Complete your first lecture",          "progress", 50),
-    ("ten_lectures",    "Apprentice Path",  "Complete 10 lectures",                 "progress", 200),
-    ("first_quiz",      "Trial Taker",      "Submit your first assignment",         "academic", 75),
-    ("perfect_score",   "Flawless Rune",    "Score 100% on any assignment",         "academic", 150),
-    ("speed_reader",    "Swift Scholar",    "Complete a lecture in one session",    "efficiency", 100),
-    ("xp_1000",         "Novice Mage",      "Earn 1000 XP",                         "xp",       100),
-    ("xp_5000",         "Arcane Adept",     "Earn 5000 XP",                         "xp",       250),
-    ("degree_cert",     "Certified",        "Earn Certificate eligibility",         "degree",   500),
-    ("degree_assoc",    "Associate Sage",   "Earn Associate eligibility",           "degree",   1000),
-    ("degree_bachelor", "Bachelor Mage",    "Earn Bachelor eligibility",            "degree",   2000),
-    ("degree_master",   "Grand Scholar",    "Earn Master eligibility",              "degree",   5000),
-    ("degree_doctor",   "Doctor Arcanum",   "Earn Doctorate eligibility",           "degree",   10000),
-    ("night_owl",       "Night Owl",        "Study after midnight",                 "habit",    75),
-    ("bulk_import",     "Archivist",        "Import a bulk JSON curriculum",        "system",   100),
-    ("professor_query", "The Asking",       "Query the Professor AI 10 times",      "llm",      100),
-    ("video_render",    "Projector",        "Render your first lecture video",      "media",    150),
-    ("batch_render",    "Dreamweaver",      "Batch render 5 or more lectures",      "media",    300),
-]
+# ─── Achievements (delegated to db_achievements.py) ────────────────────────────
 
 
 def seed_achievements() -> None:
-    with tx() as con:
-        for aid, title, desc, cat, xp in _ACHIEVEMENT_DEFS:
-            con.execute(
-                "INSERT OR IGNORE INTO achievements (id,title,description,category,xp_reward) VALUES (?,?,?,?,?)",
-                (aid, title, desc, cat, xp),
-            )
+    _seed_achievements_raw(tx)
 
 
 def unlock_achievement(achievement_id: str) -> bool:
-    with tx() as con:
-        row = con.execute("SELECT unlocked_at FROM achievements WHERE id=?", (achievement_id,)).fetchone()
-        if not row or row["unlocked_at"]:
-            return False
-        con.execute(
-            "UPDATE achievements SET unlocked_at=? WHERE id=?", (time.time(), achievement_id)
-        )
-        reward = con.execute("SELECT xp_reward FROM achievements WHERE id=?", (achievement_id,)).fetchone()
-    if reward:
-        add_xp(reward["xp_reward"], f"Achievement: {achievement_id}", "achievement")
-    return True
+    return _unlock_achievement_raw(achievement_id, tx, add_xp)
 
 
 def get_achievements() -> list[dict]:
-    with tx() as con:
-        rows = con.execute("SELECT * FROM achievements ORDER BY category, id").fetchall()
-    return [dict(r) for r in rows]
+    return _get_achievements_raw(tx)
 
 
 def _check_achievements_xp(total_xp: int) -> None:
-    if total_xp >= 1000:
-        unlock_achievement("xp_1000")
-    if total_xp >= 5000:
-        unlock_achievement("xp_5000")
+    _check_achievements_xp_raw(total_xp, unlock_achievement)
 
 
 def _check_achievements_degrees() -> None:
-    """Check all degree-tier achievements after grade/credit changes."""
-    earned = eligible_degrees()
-    _DEGREE_MAP = {
-        "Certificate": "degree_cert",
-        "Associate": "degree_assoc",
-        "Bachelor": "degree_bachelor",
-        "Master": "degree_master",
-        "Doctorate": "degree_doctor",
-    }
-    for deg in earned:
-        aid = _DEGREE_MAP.get(deg)
-        if aid:
-            unlock_achievement(aid)
+    _check_achievements_degrees_raw(eligible_degrees, unlock_achievement)
 
 
 # ─── Schema validation ─────────────────────────────────────────────────────────
@@ -540,7 +461,6 @@ def _check_achievements_degrees() -> None:
 _SCHEMA_CACHE: dict | None = None
 
 def _load_schema() -> dict | None:
-    """Load course_schema.json for validation. Returns None if unavailable."""
     global _SCHEMA_CACHE
     if _SCHEMA_CACHE is not None:
         return _SCHEMA_CACHE
@@ -555,16 +475,14 @@ def _load_schema() -> dict | None:
 
 
 def validate_course_json(obj: dict) -> list[str]:
-    """Validate a course object against the schema. Returns list of error messages."""
     try:
         import jsonschema
     except ImportError:
-        return []  # Silently skip if jsonschema not installed
+        return []
     schema = _load_schema()
     if schema is None:
         return []
     errors = []
-    # Only validate objects that look like full courses
     if "modules" not in obj:
         return []
     v = jsonschema.Draft7Validator(schema)
@@ -577,14 +495,6 @@ def validate_course_json(obj: dict) -> list[str]:
 # ─── Bulk JSON import ──────────────────────────────────────────────────────────
 
 def bulk_import_json(raw: str, validate_only: bool = False) -> tuple[int, list[str]]:
-    """
-    Accept a string that is either:
-    - a single course JSON object
-    - a JSON array of course objects
-    - newline-delimited JSON objects
-    If validate_only is True, only validate without writing to DB.
-    Returns (count_imported_or_validated, list_of_errors).
-    """
     objects = []
     raw = raw.strip()
     try:
@@ -596,7 +506,7 @@ def bulk_import_json(raw: str, validate_only: bool = False) -> tuple[int, list[s
             if line:
                 try:
                     objects.append(json.loads(line))
-                except json.JSONDecodeError as e:
+                except json.JSONDecodeError:
                     pass
 
     imported = 0
@@ -605,7 +515,6 @@ def bulk_import_json(raw: str, validate_only: bool = False) -> tuple[int, list[s
         if not isinstance(obj, dict):
             errors.append(f"Object {i + 1}: expected a JSON object, got {type(obj).__name__}")
             continue
-        # Schema validation
         schema_errors = validate_course_json(obj)
         if schema_errors:
             prefix = f"Object {i + 1}" if len(objects) > 1 else "Input"
@@ -634,17 +543,13 @@ def bulk_import_json(raw: str, validate_only: bool = False) -> tuple[int, list[s
 
 
 def _import_one_object(obj: dict) -> None:
-    """Try to interpret an arbitrary JSON blob as a course, module, or lecture."""
-    # Detect type by presence of keys
     if "modules" in obj:
-        # Full course spec or single course with modules
         _import_course(obj)
     elif "lectures" in obj and "course_id" in obj:
         _import_module(obj)
     elif "lecture_id" in obj or ("title" in obj and "video_recipe" in obj):
         _import_lecture_flat(obj)
     elif "course_spec_version" in obj:
-        # Our own course spec format
         for module in obj.get("modules", []):
             for lecture in module.get("lectures", []):
                 course_id = obj.get("course_id", "imported_course")
@@ -688,78 +593,33 @@ def _import_lecture_flat(obj: dict) -> None:
     upsert_lecture(lid, mid, cid, obj.get("title", "Lecture"), obj.get("duration_min", 60), 0, obj)
 
 
-# Bootstrap
+# ─── Bootstrap ─────────────────────────────────────────────────────────────────
 init_db()
 seed_achievements()
 
 
-# ─── Compatibility shims (used by UI pages) ───────────────────────────────────
+# ─── Compatibility shims (re-exported for UI pages) ────────────────────────────
 
-def save_setting(key: str, value: str) -> None:
-    """Alias for set_setting."""
-    set_setting(key, value)
+_shims = make_shims(
+    set_setting=set_setting,
+    get_setting=get_setting,
+    get_achievements=get_achievements,
+    get_xp=get_xp,
+    append_chat=append_chat,
+    get_chat=get_chat,
+    get_level=get_level,
+    compute_gpa=compute_gpa,
+    tx=tx,
+    save_llm_generated_raw=_save_llm_generated_canonical,
+)
 
-
-def get_all_achievements() -> list[dict]:
-    """Alias for get_achievements."""
-    return get_achievements()
-
-
-def get_total_xp() -> int:
-    """Alias for get_xp."""
-    return get_xp()
-
-
-def save_chat_history(session_id: str, role: str, content: str) -> None:
-    """Alias for append_chat."""
-    append_chat(session_id, role, content)
-
-
-def get_chat_history(session_id: str, limit: int = 50) -> list[dict]:
-    """Alias for get_chat."""
-    return get_chat(session_id, limit)
-
-
-def get_xp_history(limit: int = 50) -> list[dict]:
-    """Return most recent XP events, newest last."""
-    with tx() as con:
-        rows = con.execute(
-            "SELECT * FROM xp_events ORDER BY id DESC LIMIT ?", (limit,)
-        ).fetchall()
-    return list(reversed([dict(r) for r in rows]))
-
-
-def get_level_info(total_xp: int | None = None) -> tuple[int, str, int, int]:
-    """get_level() wrapper that optionally accepts a pre-fetched xp value."""
-    return get_level()
-
-
-def get_gpa() -> float:
-    """Return GPA as a plain float (not tuple)."""
-    gpa, _ = compute_gpa()
-    return gpa
-
-
-def save_llm_generated(type_or_content: str, topic_or_type: str = "", content: str = "") -> int:
-    """Flexible wrapper — accepts (content, type) or (type, topic, content_obj)."""
-    if content:
-        # Called as: save_llm_generated("curriculum", "topic text", json_string_or_dict)
-        import json as _json
-        if isinstance(content, (dict, list)):
-            stored = _json.dumps(content)
-        else:
-            stored = str(content)
-        return save_llm_generated_raw(stored, type_or_content)
-    else:
-        # Called as: save_llm_generated(content_str, content_type)
-        return save_llm_generated_raw(type_or_content, topic_or_type or "general")
-
-
-def save_llm_generated_raw(content: str, content_type: str) -> int:
-    """The original save_llm_generated logic."""
-    with tx() as con:
-        cur = con.execute(
-            "INSERT INTO llm_generated (content,type) VALUES (?,?)", (content, content_type)
-        )
-        row_id = cur.lastrowid
-    return row_id
+save_setting = _shims["save_setting"]
+get_all_achievements = _shims["get_all_achievements"]
+get_total_xp = _shims["get_total_xp"]
+save_chat_history = _shims["save_chat_history"]
+get_chat_history = _shims["get_chat_history"]
+get_xp_history = _shims["get_xp_history"]
+get_level_info = _shims["get_level_info"]
+get_gpa = _shims["get_gpa"]
+save_llm_generated = _shims["save_llm_generated"]
+save_llm_generated_raw = _save_llm_generated_canonical

@@ -36,7 +36,7 @@ Cross-reference: [check2.md](check2.md) covers the engineering contract and inte
 - [x] LLM schema + guide created (`schemas/course_schema.json`, `schemas/SCHEMA_GUIDE.md`)
 - [ ] Add JSON schema validation feedback with clear error line hints
 - [ ] Add "repair malformed JSON" helper flow in Professor AI
-- [ ] Add import dry-run mode (validate without writing DB)
+- [x] Add import dry-run mode (validate without writing DB)
 - [x] Course deletion with confirmation exists in Library page
 - [ ] Add cascade behavior warning before delete (show count of modules/lectures)
 
@@ -51,9 +51,9 @@ Cross-reference: [check2.md](check2.md) covers the engineering contract and inte
 - [x] First render test passed: 40s, 960x540, 15fps, audio synced, 2.22 MB
 - [ ] Verify render output files are playable in default Windows player
 - [ ] Verify A/V sync on 3+ representative lectures
-- [ ] Add render retry logic for per-scene failures
-- [ ] Add render quality profiles (draft, balanced, final)
-- [ ] Add run summary report per batch render session
+- [x] Add render retry logic for per-scene failures
+- [x] Add render quality profiles (draft, balanced, final)
+- [x] Add run summary report per batch render session
 
 ## 5. AI Professor and LLM Providers
 - [x] Professor UI scaffolded (`pages/03_Professor_AI.py`) with chat, quiz, rabbit hole, grade, curriculum
@@ -65,10 +65,10 @@ Cross-reference: [check2.md](check2.md) covers the engineering contract and inte
 - [x] Streaming chat method added (`professor.stream()`)
 - [x] Hardware check utility exists (`check_hardware()` with RAM/VRAM/CPU)
 - [x] Ollama model pull utility in Settings page
-- [ ] Validate each provider with a real minimal prompt-response smoke test
-- [ ] Normalize provider errors into friendly user-facing messages
-- [ ] Add model capability matrix (chat, long-context, fast/cheap, coding)
-- [ ] Add token and cost telemetry per interaction (where available)
+- [x] Validate each provider with a real minimal prompt-response smoke test
+- [x] Normalize provider errors into friendly user-facing messages
+- [x] Add model capability matrix (chat, long-context, fast/cheap, coding)
+- [x] Add token and cost telemetry per interaction (where available)
 
 ## 6. Audio Quality and Learning Audio
 - [x] Neural TTS path included (`edge-tts` with Microsoft Neural voices)
@@ -89,7 +89,7 @@ Cross-reference: [check2.md](check2.md) covers the engineering contract and inte
 - [x] Achievements page scaffolded (`pages/07_Achievements.py`)
 - [x] `achievement_card()` supports both dict and positional args
 - [x] Procedural ASCII art headers (no external assets, no emojis)
-- [ ] Add deterministic unlock rules audit (every achievement has a trigger)
+- [x] Add deterministic unlock rules audit (every achievement has a trigger)
 - [ ] Add level-up celebration flow for first-time level transitions
 - [ ] Add weekly quest loop (optional toggle)
 - [ ] Add XP decay prevention (activity streak bonus)
@@ -124,7 +124,7 @@ Cross-reference: [check2.md](check2.md) covers the engineering contract and inte
 - [x] P0: First end-to-end render + playback test passed (40s video, A/V synced)
 - [x] P0: Streamlit runtime launch verified (health endpoint OK, dashboard renders)
 - [x] P1: Harden provider setup UX and test at least 1 local + 1 cloud provider
-- [ ] P1: Add import validation + dry-run support
+- [x] P1: Add import validation + dry-run support
 - [ ] P2: Expand grading weight/term support and transcript fidelity
 - [x] P2: Diagnostics page added (`pages/09_Diagnostics.py`)
 - [x] P1: Comprehensive help system with interconnected navigation

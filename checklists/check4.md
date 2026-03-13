@@ -344,17 +344,17 @@ the vision of a real, fully functional AI-powered university.
 ### E.2 Render Quality & Reliability
 - [ ] Verify render output files are playable in default Windows player
 - [ ] Verify A/V sync on 3+ representative lectures
-- [ ] Add render retry logic for per-scene failures
+- [x] Add render retry logic for per-scene failures
 - [x] Add render quality profiles (Draft, Balanced, High Quality, Final, Custom)
-- [ ] Add batch render summary report (time, sizes, errors)
-- [ ] Add scene-level error isolation (failed scene should not crash whole batch)
+- [x] Add batch render summary report (time, sizes, errors)
+- [x] Add scene-level error isolation (failed scene should not crash whole batch)
 
 ### E.3 Provider Error Handling
 - [x] Normalize provider errors into user-facing messages
 - [x] Add standardized error map (auth_error, rate_limit, network, bad_model, timeout, provider_down)
-- [ ] Add provider capability map (streaming yes/no, context size, json-mode support, cost per token)
-- [ ] Add provider fallback policy (try provider A, if fail try provider B)
-- [ ] Add token and cost telemetry per interaction (where applicable)
+- [x] Add provider capability map (streaming yes/no, context size, json-mode support, cost per token)
+- [x] Add provider fallback policy (try provider A, if fail try provider B)
+- [x] Add token and cost telemetry per interaction (where applicable)
 
 ### E.4 Audio Enhancement
 - [ ] Verify per-voice narration quality and speed controls across lectures
@@ -363,7 +363,7 @@ the vision of a real, fully functional AI-powered university.
 - [ ] Add clipping detection and auto gain reduction
 
 ### E.5 Gamification Polish
-- [ ] Audit all 17 achievements — ensure each has a working unlock trigger in code
+- [x] Audit all 17 achievements — ensure each has a working unlock trigger in code
 - [ ] Add level-up celebration flow for first-time level transitions
 - [ ] Add weekly quest loop (optional toggle in Settings)
 - [ ] Add XP decay prevention (activity streak bonus)
@@ -376,18 +376,18 @@ the vision of a real, fully functional AI-powered university.
 - [ ] Verify transcript export correctness against real assignment submissions
 
 ### E.7 Testing & CI
-- [ ] Create `tests/` directory with baseline tests: DB CRUD, import, audio gen, minimal render
+- [x] Create `tests/` directory with baseline tests: DB CRUD, import, audio gen, minimal render
 - [ ] Add regression tests for known bug classes (signature mismatch, invalid JSON from LLM)
-- [ ] Add contract test: import every page module, validate all referenced symbols exist
+- [x] Add contract test: import every page module, validate all referenced symbols exist
 - [ ] Define "green build" gate (all tests pass before feature work)
 
 ### E.8 Operations & Security
-- [ ] Add structured logging for render jobs, provider calls, import operations
+- [x] Add structured logging for render jobs, provider calls, import operations
 - [ ] Store API keys encrypted or use environment variables (avoid plain text in DB)
-- [ ] Never log raw secrets
+- [x] Never log raw secrets
 - [ ] Add provider key presence check before enabling provider actions
 - [ ] Add explicit warning banner when using paid providers
-- [ ] Sanitize LLM outputs before rendering in Streamlit (prevent injection via st.markdown)
+- [x] Sanitize LLM outputs before rendering in Streamlit (prevent injection via st.markdown)
 - [ ] Add error IDs surfaced to UI for quick support triage
 
 ### E.9 Documentation & Setup

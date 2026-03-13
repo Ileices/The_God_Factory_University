@@ -15,7 +15,7 @@ Cross-reference: [check1.md](check1.md) covers the product roadmap and delivery 
   - `media.video_engine`
   - `media.audio_engine`
   - `ui.theme`
-- [ ] Add a contract test that imports every page module and validates all referenced symbols exist
+- [x] Add a contract test that imports every page module and validates all referenced symbols exist
 - [ ] Ban silent alias drift: if compatibility aliases are added, document and deprecate with timeline
 - [ ] Enforce type hints for all public functions consumed by pages
 
@@ -27,9 +27,9 @@ Cross-reference: [check1.md](check1.md) covers the product roadmap and delivery 
 - [x] Provider config from settings helper (`cfg_from_settings()`)
 - [x] PROVIDER_CATALOGUE dict with models, base URLs, setup hints for all 10 providers
 - [ ] Add provider health-check endpoint/function (connectivity + auth + model list)
-- [ ] Add standardized error mapping (`auth_error`, `rate_limit`, `network`, `bad_model`, `provider_down`)
-- [ ] Add provider capability map (streaming, context size, json-mode, cost metadata)
-- [ ] Add provider fallback policy (ordered fallback with user opt-in)
+- [x] Add standardized error mapping (`auth_error`, `rate_limit`, `network`, `bad_model`, `provider_down`)
+- [x] Add provider capability map (streaming, context size, json-mode, cost metadata)
+- [x] Add provider fallback policy (ordered fallback with user opt-in)
 
 ## C. Professor Agent Reliability
 - [x] Core professor class exists (`llm/professor.py` with 15 capabilities)
@@ -62,7 +62,7 @@ Cross-reference: [check1.md](check1.md) covers the product roadmap and delivery 
   - audio stream present
   - resolution expected
   - playable with ffprobe/moviepy
-- [ ] Add scene-level error isolation (failed scene should not crash whole batch)
+- [x] Add scene-level error isolation (failed scene should not crash whole batch)
 
 ## E. Audio Quality Controls
 - [x] Voice selection settings exist (edge-tts voice ID, rate, pitch)
@@ -90,7 +90,7 @@ Cross-reference: [check1.md](check1.md) covers the product roadmap and delivery 
 - [ ] Add migration version table and migration runner
 
 ## G. Testing and CI Gates
-- [ ] Add baseline tests:
+- [x] Add baseline tests:
   - DB init and CRUD
   - curriculum import
   - professor prompt calls (mocked)
@@ -107,7 +107,7 @@ Cross-reference: [check1.md](check1.md) covers the product roadmap and delivery 
 - [ ] Define "green build" gate before merging feature work
 
 ## H. Operations and Observability
-- [ ] Add structured logs for render jobs, provider calls, and import operations
+- [x] Add structured logs for render jobs, provider calls, and import operations
 - [ ] Add error IDs surfaced to UI for quick support triage
 - [x] Diagnostics page implemented (`pages/09_Diagnostics.py`):
   - Python/env details (version, platform, cwd)
@@ -121,10 +121,10 @@ Cross-reference: [check1.md](check1.md) covers the product roadmap and delivery 
 
 ## I. Security and Secrets
 - [ ] Store API keys securely (avoid plain text in DB where possible)
-- [ ] Never log raw secrets
+- [x] Never log raw secrets
 - [ ] Add provider key presence checks before enabling provider actions
 - [ ] Add explicit warning banner when using paid providers
-- [ ] Sanitize LLM outputs before rendering in Streamlit (prevent injection via st.markdown)
+- [x] Sanitize LLM outputs before rendering in Streamlit (prevent injection via st.markdown)
 
 ## J. Milestone Exit Criteria
 
