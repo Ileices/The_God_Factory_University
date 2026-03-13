@@ -346,6 +346,54 @@ _reg("xp-events", "XP Events",
      "**Streak bonus**: +5% per consecutive day (max +50% at 10-day streak).\n"
      "View your complete XP history on the Achievements page.")
 
+# ─── Placement Testing ────────────────────────────────────────────────────────
+_reg("placement-testing", "Placement Testing",
+     "Take an adaptive placement exam to discover your starting level in any subject.\n\n"
+     "1. Select a domain and optional sub-field\n"
+     "2. Answer 10 questions of increasing difficulty\n"
+     "3. Difficulty adapts based on your correctness streak\n"
+     "4. Receive a recommended starting level (beginner / intermediate / advanced)\n\n"
+     "Results are saved and can be reviewed in your test history.")
+
+# ─── Test Prep ────────────────────────────────────────────────────────────────
+_reg("test-prep", "Standardized Test Prep",
+     "Practice for standardized tests with timed sessions and score reports:\n\n"
+     "- **GED**: Reasoning Through Language Arts, Mathematical Reasoning, Science, Social Studies\n"
+     "- **SAT**: Reading, Writing & Language, Math (No Calc), Math (Calculator)\n"
+     "- **ACT**: English, Math, Reading, Science\n"
+     "- **GRE**: Verbal Reasoning, Quantitative Reasoning, Analytical Writing\n\n"
+     "Each practice session has 10 questions with a 10-minute timer.\n"
+     "Score reports include approximate percentile estimates.")
+
+# ─── Programs & Curriculum ────────────────────────────────────────────────────
+_reg("programs-overview", "Programs & Curriculum",
+     "Browse and enroll in degree programs:\n\n"
+     "- **Certificate**: 15 credits minimum\n"
+     "- **Associate**: 60 credits\n"
+     "- **Bachelor**: 120 credits\n"
+     "- **Master**: 150 credits\n"
+     "- **Doctorate**: 180 credits\n\n"
+     "Track progress toward each program with credit completion bars.\n"
+     "Programs are pre-seeded from multiple schools and disciplines.")
+
+# ─── Student Profile ──────────────────────────────────────────────────────────
+_reg("student-profile", "Student Profile",
+     "Manage your academic identity and preferences:\n\n"
+     "- **Display Name**: Your name shown throughout the app\n"
+     "- **Grade Level**: K through Postdoctoral (affects course recommendations)\n"
+     "- **Learning Style**: Visual, Auditory, Reading/Writing, or Kinesthetic\n"
+     "- **Study Pace**: Relaxed, Moderate, or Intensive\n\n"
+     "Also shows your academic summary: rank, XP, GPA, credits, and study streak.")
+
+# ─── Statistics Dashboard ─────────────────────────────────────────────────────
+_reg("statistics-dashboard", "Statistics Dashboard",
+     "Your analytics dashboard with key academic metrics:\n\n"
+     "- **Overview cards**: Study hours, lectures completed, assignments, GPA, credits, XP\n"
+     "- **Daily Activity**: Bar chart of actions per day (last 30 days)\n"
+     "- **Activity Breakdown**: Event types ranked by frequency\n"
+     "- **Grade Distribution**: How your scores spread across A/B/C/D/F ranges\n\n"
+     "Activity is automatically logged as you use the app.")
+
 
 def get_help(anchor: str) -> dict | None:
     """Return a help entry by anchor key, or None if not found."""

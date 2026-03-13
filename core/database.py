@@ -5,6 +5,14 @@ All tables are created on first import. Thread-safe via WAL mode.
 Sub-modules (DEVELOPMENT.md Rule 5):
   - db_achievements.py  — achievement defs, seeding, triggers
   - db_grades.py        — GPA, grade scale, degree tracks
+  - db_import.py        — bulk JSON import, schema validation
+  - db_quests.py        — weekly quest logic
+  - db_levels.py        — grade level system (K-postdoc)
+  - db_subjects.py      — subject taxonomy (domain/field/subfield)
+  - db_programs.py      — degree programs & enrollments
+  - db_activity.py      — activity logging & student profile
+  - placement.py        — placement test engine
+  - test_prep.py        — standardized test prep (GED/SAT/ACT/GRE)
   - db_shims.py         — compatibility aliases for UI pages
 """
 from __future__ import annotations
@@ -32,6 +40,44 @@ from core.db_grades import (
     compute_gpa as _compute_gpa_raw,
     credits_earned as _credits_earned_raw,
     eligible_degrees as _eligible_degrees_raw,
+)
+from core.db_import import (
+    validate_course_json,
+    bulk_import_json as _bulk_import_json_raw,
+)
+from core.db_levels import (
+    create_tables as _create_level_tables,
+    seed_grade_levels as _seed_grade_levels_raw,
+    get_all_levels as _get_all_levels_raw,
+    get_level_by_id as _get_level_by_id_raw,
+)
+from core.db_quests import (
+    seed_weekly_quests as _seed_weekly_quests_raw,
+    get_active_quests as _get_active_quests_raw,
+    update_quest_progress as _update_quest_progress_raw,
+)
+from core.db_subjects import (
+    create_tables as _create_subject_tables,
+    seed_subjects as _seed_subjects_raw,
+    get_domains as _get_domains_raw,
+    get_children as _get_children_raw,
+    get_subject as _get_subject_raw,
+    get_all_subjects as _get_all_subjects_raw,
+)
+from core.placement import create_tables as _create_placement_tables
+from core.test_prep import create_tables as _create_test_prep_tables
+from core.db_programs import (
+    create_tables as _create_program_tables,
+    seed_programs as _seed_programs_raw,
+    get_all_programs as _get_all_programs_raw,
+    get_program as _get_program_raw,
+    enroll as _enroll_raw,
+    get_enrollments as _get_enrollments_raw,
+)
+from core.db_activity import (
+    create_tables as _create_activity_tables,
+    log_activity as _log_activity_raw,
+    get_activity_summary as _get_activity_summary_raw,
 )
 from core.db_shims import make_shims
 
@@ -69,6 +115,7 @@ def init_db() -> None:
             credits     INTEGER DEFAULT 3,
             data        TEXT,
             source      TEXT DEFAULT 'imported',
+            subject_id  TEXT,
             created_at  REAL DEFAULT (unixepoch())
         );
 
@@ -197,19 +244,27 @@ def init_db() -> None:
         INSERT OR IGNORE INTO settings VALUES ('streak_last_date', '');
         INSERT OR IGNORE INTO settings VALUES ('_pending_level_up', '');
         INSERT OR IGNORE INTO settings VALUES ('enrollment_date', '');
+        INSERT OR IGNORE INTO settings VALUES ('grade_level', '');
 
         CREATE TABLE IF NOT EXISTS schema_version (
             version INTEGER PRIMARY KEY,
             applied_at REAL DEFAULT (unixepoch())
         );
         """)
+    # Sub-module tables
+    _create_level_tables(tx)
+    _create_subject_tables(tx)
+    _create_placement_tables(tx)
+    _create_test_prep_tables(tx)
+    _create_program_tables(tx)
+    _create_activity_tables(tx)
 
 
 # ─── Schema migrations ────────────────────────────────────────────────────────
 
 _MIGRATIONS: list[tuple[int, str, str]] = [
     # (version, label, SQL)
-    # Add new migrations here as tuples: (next_int, "description", "SQL;")
+    (1, "add subject_id to courses", "ALTER TABLE courses ADD COLUMN subject_id TEXT;"),
 ]
 
 
@@ -222,13 +277,22 @@ def get_schema_version() -> int:
 
 
 def run_migrations() -> int:
-    current = get_schema_version()
+    current try:
+                con.executescript(sql)
+            except sqlite3.OperationalError:
+                pass  # e.g. column already exists from DDL
+                con.executescript(sql)
+            except sqlite3.OperationalError:
+                pass  # e.g. column already exists from DDL
     applied = 0
     for version, _label, sql in _MIGRATIONS:
         if version <= current:
             continue
         with tx() as con:
-            con.executescript(sql)
+            try:
+                con.executescript(sql)
+            except sqlite3.OperationalError:
+                pass  # column already exists
             con.execute(
                 "INSERT INTO schema_version (version) VALUES (?)", (version,)
             )
@@ -596,216 +660,101 @@ def _check_achievements_degrees() -> None:
     _check_achievements_degrees_raw(eligible_degrees, unlock_achievement)
 
 
-# ─── Weekly Quests ──────────────────────────────────────────────────────────────
-
-_QUEST_TEMPLATES = [
-    ("complete_3_lectures", "Complete 3 Lectures", "Finish 3 lectures this week", 3, 100),
-    ("earn_200_xp", "Earn 200 XP", "Accumulate 200 XP this week", 200, 75),
-    ("submit_assignment", "Submit an Assignment", "Turn in at least 1 assignment", 1, 50),
-]
-
-
-def _current_week_start() -> str:
-    today = datetime.now()
-    monday = today - timedelta(days=today.weekday())
-    return monday.strftime("%Y-%m-%d")
-
+# ─── Weekly Quests (delegated to db_quests.py) ──────────────────────────────────
 
 def seed_weekly_quests() -> None:
-    week = _current_week_start()
-    with tx() as con:
-        existing = con.execute(
-            "SELECT id FROM quests WHERE week_start=?", (week,)
-        ).fetchall()
-    if existing:
-        return
-    with tx() as con:
-        for qid, title, desc, target, xp in _QUEST_TEMPLATES:
-            con.execute(
-                "INSERT OR IGNORE INTO quests (id,title,description,target,progress,xp_reward,week_start) "
-                "VALUES (?,?,?,?,0,?,?)",
-                (f"{qid}_{week}", title, desc, target, xp, week),
-            )
+    _seed_weekly_quests_raw(tx)
 
 
 def get_active_quests() -> list[dict]:
-    week = _current_week_start()
-    with tx() as con:
-        rows = con.execute(
-            "SELECT * FROM quests WHERE week_start=? ORDER BY id", (week,)
-        ).fetchall()
-    return [dict(r) for r in rows]
+    return _get_active_quests_raw(tx)
 
 
 def update_quest_progress(quest_prefix: str, increment: int = 1) -> None:
-    week = _current_week_start()
-    qid = f"{quest_prefix}_{week}"
-    with tx() as con:
-        row = con.execute(
-            "SELECT progress, target, completed, xp_reward FROM quests WHERE id=?", (qid,)
-        ).fetchone()
-    if not row or row["completed"]:
-        return
-    new_progress = min(row["progress"] + increment, row["target"])
-    completed = 1 if new_progress >= row["target"] else 0
-    with tx() as con:
-        con.execute(
-            "UPDATE quests SET progress=?, completed=? WHERE id=?",
-            (new_progress, completed, qid),
-        )
-    if completed:
-        add_xp(row["xp_reward"], f"Quest complete: {quest_prefix}", "quest")
+    _update_quest_progress_raw(quest_prefix, tx, add_xp, increment)
 
 
-# ─── Schema validation ─────────────────────────────────────────────────────────
+# ─── Grade Levels (delegated to db_levels.py) ──────────────────────────────────
 
-_SCHEMA_CACHE: dict | None = None
-
-def _load_schema() -> dict | None:
-    global _SCHEMA_CACHE
-    if _SCHEMA_CACHE is not None:
-        return _SCHEMA_CACHE
-    schema_path = Path(__file__).resolve().parent.parent / "schemas" / "course_validation_schema.json"
-    if not schema_path.exists():
-        return None
-    try:
-        _SCHEMA_CACHE = json.loads(schema_path.read_text(encoding="utf-8"))
-        return _SCHEMA_CACHE
-    except Exception:
-        return None
+def get_grade_levels() -> list[dict]:
+    return _get_all_levels_raw(tx)
 
 
-def validate_course_json(obj: dict) -> list[str]:
-    try:
-        import jsonschema
-    except ImportError:
-        return []
-    schema = _load_schema()
-    if schema is None:
-        return []
-    errors = []
-    if "modules" not in obj:
-        return []
-    v = jsonschema.Draft7Validator(schema)
-    for error in v.iter_errors(obj):
-        path = " -> ".join(str(p) for p in error.absolute_path) if error.absolute_path else "(root)"
-        errors.append(f"Schema: {path}: {error.message}")
-    return errors
+def get_grade_level(level_id: str) -> dict | None:
+    return _get_level_by_id_raw(level_id, tx)
 
 
-# ─── Bulk JSON import ──────────────────────────────────────────────────────────
+# ─── Subjects (delegated to db_subjects.py) ────────────────────────────────────
+
+def get_subject_domains() -> list[dict]:
+    return _get_domains_raw(tx)
+
+
+def get_subject_children(parent_id: str) -> list[dict]:
+    return _get_children_raw(parent_id, tx)
+
+
+def get_subject(subject_id: str) -> dict | None:
+    return _get_subject_raw(subject_id, tx)
+
+
+def get_all_subjects() -> list[dict]:
+    return _get_all_subjects_raw(tx)
+
+
+# ─── Programs (delegated to db_programs.py) ────────────────────────────────────────
+
+def get_all_programs() -> list[dict]:
+    return _get_all_programs_raw(tx)
+
+
+def get_program(program_id: str) -> dict | None:
+    return _get_program_raw(program_id, tx)
+
+
+def enroll_program(program_id: str) -> str:
+    return _enroll_raw(program_id, tx)
+
+
+def get_enrollments() -> list[dict]:
+    return _get_enrollments_raw(tx)
+
+
+# ─── Activity (delegated to db_activity.py) ────────────────────────────────────
+
+def log_activity(event_type: str, duration_s: float = 0, metadata: dict | None = None) -> None:
+    _log_activity_raw(event_type, tx, duration_s, metadata)
+
+
+def get_activity_summary() -> dict:
+    return _get_activity_summary_raw(tx)
+
+
+# ─── t_all_subjects() -> list[dict]:
+    return _get_all_subjects_raw(tx)
+
+
+# ─── Schema validation & Bulk import (delegated to db_import.py) ───────────────
+
+# validate_course_json imported directly from db_import
+
 
 def bulk_import_json(raw: str, validate_only: bool = False) -> tuple[int, list[str]]:
-    objects = []
-    raw = raw.strip()
-    try:
-        parsed = json.loads(raw)
-        objects = parsed if isinstance(parsed, list) else [parsed]
-    except json.JSONDecodeError:
-        for line in raw.splitlines():
-            line = line.strip()
-            if line:
-                try:
-                    objects.append(json.loads(line))
-                except json.JSONDecodeError:
-                    pass
-
-    imported = 0
-    errors = []
-    for i, obj in enumerate(objects):
-        if not isinstance(obj, dict):
-            errors.append(f"Object {i + 1}: expected a JSON object, got {type(obj).__name__}")
-            continue
-        schema_errors = validate_course_json(obj)
-        if schema_errors:
-            prefix = f"Object {i + 1}" if len(objects) > 1 else "Input"
-            errors.extend(f"{prefix}: {e}" for e in schema_errors)
-            continue
-        if validate_only:
-            imported += 1
-            continue
-        try:
-            with tx() as conn:
-                conn.execute("SAVEPOINT import_obj")
-                try:
-                    _import_one_object(obj)
-                    conn.execute("RELEASE SAVEPOINT import_obj")
-                    imported += 1
-                except Exception as e:
-                    conn.execute("ROLLBACK TO SAVEPOINT import_obj")
-                    errors.append(f"Object {i + 1}: {e}")
-        except Exception as e:
-            errors.append(f"Object {i + 1}: {e}")
-
-    if imported > 0 and not validate_only:
-        unlock_achievement("bulk_import")
-        add_xp(imported * 25, f"Bulk imported {imported} objects", "import")
-        from core.logger import log_import
-        log_import("bulk_json", "completed", items=imported)
-
-    if errors:
-        from core.logger import log_import
-        log_import("bulk_json", "errors", items=len(errors))
-
-    return imported, errors
-
-
-def _import_one_object(obj: dict) -> None:
-    if "modules" in obj:
-        _import_course(obj)
-    elif "lectures" in obj and "course_id" in obj:
-        _import_module(obj)
-    elif "lecture_id" in obj or ("title" in obj and "video_recipe" in obj):
-        _import_lecture_flat(obj)
-    elif "course_spec_version" in obj:
-        for module in obj.get("modules", []):
-            for lecture in module.get("lectures", []):
-                course_id = obj.get("course_id", "imported_course")
-                upsert_course(course_id, obj.get("title", "Imported Course"),
-                              obj.get("audience", ""), obj.get("total_lectures", 3), obj)
-                upsert_module(module["module_id"], course_id, module["title"],
-                              int(module["module_id"].replace("M", "") if module.get("module_id", "").startswith("M") else 0), module)
-                upsert_lecture(lecture["lecture_id"], module["module_id"], course_id,
-                               lecture["title"], lecture.get("duration_min", 60), 0, lecture)
-    else:
-        raise ValueError(f"Cannot detect object type: keys={list(obj.keys())[:6]}")
-
-
-def _import_course(obj: dict) -> None:
-    course_id = obj.get("course_id") or obj.get("id") or f"course_{int(time.time())}"
-    upsert_course(course_id, obj.get("title", "Imported"), obj.get("description", ""),
-                  obj.get("credits", 3), obj)
-    for i, module in enumerate(obj.get("modules", [])):
-        mid = module.get("module_id") or module.get("id") or f"{course_id}_M{i}"
-        upsert_module(mid, course_id, module.get("title", f"Module {i}"), i, module)
-        for j, lecture in enumerate(module.get("lectures", [])):
-            lid = lecture.get("lecture_id") or lecture.get("id") or f"{mid}_L{j}"
-            upsert_lecture(lid, mid, course_id, lecture.get("title", f"Lecture {j}"),
-                           lecture.get("duration_min", 60), j, lecture)
-
-
-def _import_module(obj: dict) -> None:
-    course_id = obj.get("course_id", "unknown")
-    mid = obj.get("module_id") or obj.get("id") or f"module_{int(time.time())}"
-    upsert_module(mid, course_id, obj.get("title", "Module"), 0, obj)
-    for j, lecture in enumerate(obj.get("lectures", [])):
-        lid = lecture.get("lecture_id") or f"{mid}_L{j}"
-        upsert_lecture(lid, mid, course_id, lecture.get("title", f"Lecture {j}"),
-                       lecture.get("duration_min", 60), j, lecture)
-
-
-def _import_lecture_flat(obj: dict) -> None:
-    lid = obj.get("lecture_id") or obj.get("id") or f"lecture_{int(time.time())}"
-    mid = obj.get("module_id", "unassigned")
-    cid = obj.get("course_id", "unassigned")
-    upsert_lecture(lid, mid, cid, obj.get("title", "Lecture"), obj.get("duration_min", 60), 0, obj)
+    return _bulk_import_json_raw(
+        raw, tx_func=tx, upsert_course=upsert_course, upsert_module=upsert_module,
+        upsert_lecture=upsert_lecture, unlock_achievement=unlock_achievement,
+        add_xp=add_xp, validate_only=validate_only,
+    )
 
 
 # ─── Bootstrap ─────────────────────────────────────────────────────────────────
 init_db()
 run_migrations()
+_seed_programs_raw(tx)
 seed_achievements()
 seed_weekly_quests()
+_seed_grade_levels_raw(tx)
+_seed_subjects_raw(tx)
 
 
 # ─── Compatibility shims (re-exported for UI pages) ────────────────────────────
