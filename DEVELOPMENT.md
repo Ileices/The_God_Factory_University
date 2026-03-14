@@ -20,28 +20,31 @@ file can be fully loaded, edited, and verified without truncation.
 
 **Current file sizes (baseline):**
 ```
-584  core/database.py         <- WATCH (approaching limit as features grow)
-439  pages/11_LLM_Setup.py
-360  media/video_engine.py
-332  ui/theme.py
-269  pages/08_Settings.py
-267  llm/providers.py
-267  pages/03_Professor_AI.py
-264  core/help_registry.py
-258  core/app_docs.py
-253  media/audio_engine.py
-234  llm/professor.py
-201  pages/05_Batch_Render.py
-193  pages/09_Diagnostics.py
-170  pages/06_Grades.py
-168  app.py
-152  pages/02_Lecture_Studio.py
-151  exporter.py
-120  generate_assets.py
-119  pages/04_Timeline_Editor.py
-104  pages/07_Achievements.py
-99   pages/10_Help.py
-81   pages/01_Library.py
+898  core/database.py         <- WATCH (primary facade, delegated sub-modules)
+758  llm/professor.py
+639  llm/tools.py
+636  core/university.py
+621  core/course_tree.py
+556  media/video_engine.py
+550  pages/11_LLM_Setup.py
+467  llm/agent.py
+445  scripts/generate_curriculum.py
+423  ui/theme.py
+405  core/help_registry.py
+403  pages/03_Professor_AI.py
+379  llm/providers.py
+362  media/audio_engine.py
+342  core/app_docs.py
+281  pages/06_Grades.py
+266  pages/09_Diagnostics.py
+258  pages/17_Agent.py
+241  llm/context_manager.py
+239  core/decomposition.py
+230  pages/01_Library.py
+228  app.py
+214  pages/02_Lecture_Studio.py
+212  pages/05_Batch_Render.py
+198  pages/08_Settings.py
 ```
 
 ---
@@ -57,24 +60,32 @@ Pages are thin UI wrappers — they call backend functions, they don't contain b
 app.py                          <- Dashboard entry point (thin)
 core/
     __init__.py
-    database.py                 <- DB schema, init, core CRUD
-    db_courses.py               <- Course/module/lecture CRUD (split from database.py when needed)
-    db_grades.py                <- Grade/GPA/transcript queries (split from database.py when needed)
-    db_achievements.py          <- XP/level/achievement queries (split from database.py when needed)
-    db_settings.py              <- Settings CRUD (split from database.py when needed)
-    db_students.py              <- Student profile, enrollment, activity (future)
+    database.py                 <- DB schema, init, core CRUD (facade)
+    db_achievements.py          <- Achievement defs, seeding, triggers
+    db_activity.py              <- Activity logging & student profile
+    db_assignments.py           <- Assignment CRUD, submission, prove-it flagging
+    db_grades.py                <- GPA, grade scale, degree tracks
+    db_import.py                <- Bulk JSON import, schema validation
+    db_levels.py                <- Grade level system (K-postdoc)
+    db_programs.py              <- Degree programs & enrollments
+    db_quests.py                <- Weekly quest logic
+    db_shims.py                 <- Compatibility aliases for UI pages
+    db_subjects.py              <- Subject taxonomy (domain/field/subfield)
+    course_tree.py              <- Recursive courses, qualifications, competency
+    decomposition.py            <- Decomposition prompts, pacing templates
+    university.py               <- University infrastructure tables
     help_registry.py            <- Help text entries
     app_docs.py                 <- Professor-readable documentation
-    placement.py                <- Placement test engine (future)
-    test_prep.py                <- Standardized test prep engine (future)
-    subjects.py                 <- Subject taxonomy (future)
-    programs.py                 <- Academic programs / degree programs (future)
-    analytics.py                <- Activity logging and statistics (future)
+    placement.py                <- Placement test engine
+    test_prep.py                <- Standardized test prep engine
+    chat_store.py               <- Chat persistence to disk
 llm/
     __init__.py
     providers.py                <- LLM provider abstraction + config
-    provider_health.py          <- Provider health checks, fallback logic (future)
     professor.py                <- Professor AI agent
+    agent.py                    <- Autonomous agent loop
+    tools.py                    <- Agent tool definitions
+    context_manager.py          <- LLM context management
     professor_prompts.py        <- System prompts, prompt templates (split when needed)
     json_repair.py              <- LLM response JSON repair utility (future)
 media/
@@ -233,7 +244,7 @@ Page title — one-line description.
 from __future__ import annotations
 import streamlit as st
 from core.database import ...
-from ui.theme import inject_theme, gf_header, rune_divider, help_button
+from ui.theme import inject_theme, gf_header, section_divider, help_button
 
 inject_theme()
 

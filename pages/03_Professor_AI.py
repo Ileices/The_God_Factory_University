@@ -16,7 +16,7 @@ from core.database import (
     get_setting, save_chat_history, get_chat_history, bulk_import_json,
     save_llm_generated, add_xp, unlock_achievement,
 )
-from ui.theme import inject_theme, gf_header, rune_divider, play_sfx, stat_card, help_button, sanitize_llm_output
+from ui.theme import inject_theme, gf_header, section_divider, play_sfx, stat_card, help_button, sanitize_llm_output
 
 inject_theme()
 gf_header("Professor AI", "Ileices — your blunt, brilliant guide at The God Factory.")
@@ -62,7 +62,7 @@ tab_chat, tab_gen, tab_grade, tab_quiz, tab_rabbit, tab_history, tab_guide = st.
 
 # ── Tab 1: Chat ───────────────────────────────────────────────────────────────
 with tab_chat:
-    rune_divider("Conversation")
+    section_divider("Conversation")
     help_button("professor-chat")
 
     # Session selector
@@ -118,7 +118,7 @@ with tab_chat:
 
 # ── Tab 2: Generate Curriculum ────────────────────────────────────────────────
 with tab_gen:
-    rune_divider("Curriculum Generator")
+    section_divider("Curriculum Generator")
     help_button("generate-curriculum")
     st.markdown(
         "<span style='color:#a0a0c0;font-family:monospace;font-size:0.85rem;'>"
@@ -209,7 +209,7 @@ with tab_gen:
 
 # ── Tab 3: Grade Work ─────────────────────────────────────────────────────────
 with tab_grade:
-    rune_divider("Grade an Essay or Code Submission")
+    section_divider("Grade an Essay or Code Submission")
     help_button("grade-work")
     rubric = st.text_input("Grading rubric (optional)", "Accuracy, Depth, Clarity, Examples, Originality")
     work_type = st.radio("Submission type", ["Essay", "Code"], horizontal=True)
@@ -234,7 +234,7 @@ with tab_grade:
 
 # ── Tab 4: Create Quiz ────────────────────────────────────────────────────────
 with tab_quiz:
-    rune_divider("Quiz Generator")
+    section_divider("Quiz Generator")
     help_button("create-quiz")
     quiz_topic = st.text_input("Topic / lecture title for quiz", "")
     n_q = st.slider("Number of questions", 3, 20, 5)
@@ -258,8 +258,11 @@ with tab_quiz:
                         quiz = {"questions": []}
                     st.success(f"Quiz ready: {len(quiz.get('questions', []))} questions")
                     for i, q in enumerate(quiz.get("questions", []), 1):
-                        with st.expander(f"Q{i}: {q.get('question','')[:80]}"):
-                            st.write("**Type:**", q.get("type"))
+                        q_text = q.get('question') or q.get('q', '')
+                        with st.expander(f"Q{i}: {q_text[:80]}"):
+                            st.markdown(f"**{q_text}**")
+                            if q.get("type"):
+                                st.write("**Type:**", q.get("type"))
                             if "choices" in q:
                                 for c in q["choices"]:
                                     st.write(f"  - {c}")
@@ -271,7 +274,7 @@ with tab_quiz:
 
 # ── Tab 5: Research Rabbit Hole ───────────────────────────────────────────────
 with tab_rabbit:
-    rune_divider("Research Rabbit Hole")
+    section_divider("Research Rabbit Hole")
     help_button("research-rabbit-hole")
     st.markdown(
         "<span style='color:#a0a0c0;font-family:monospace;font-size:0.85rem;'>"
@@ -314,7 +317,7 @@ with tab_rabbit:
 
 # ── Tab 6: Chat History Browser ───────────────────────────────────────────────
 with tab_history:
-    rune_divider("Chat History")
+    section_divider("Chat History")
     from core.chat_store import list_sessions, load_session, label_session, export_for_llm
 
     sessions = list_sessions()
@@ -357,7 +360,7 @@ with tab_history:
 
 # ── Tab 7: App Guide ─────────────────────────────────────────────────────────
 with tab_guide:
-    rune_divider("App Guide — Ask About Any Feature")
+    section_divider("App Guide — Ask About Any Feature")
     st.markdown(
         "<span style='color:#a0a0c0;font-family:monospace;font-size:0.85rem;'>"
         "Ask the Professor how to use any feature of The God Factory University. "

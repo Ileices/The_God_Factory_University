@@ -4,6 +4,7 @@ All tables are created on first import. Thread-safe via WAL mode.
 
 Sub-modules (DEVELOPMENT.md Rule 5):
   - db_achievements.py  — achievement defs, seeding, triggers
+  - db_assignments.py   — assignment CRUD, submission, prove-it flagging
   - db_grades.py        — GPA, grade scale, degree tracks
   - db_import.py        — bulk JSON import, schema validation
   - db_quests.py        — weekly quest logic
@@ -40,6 +41,16 @@ from core.db_grades import (
     compute_gpa as _compute_gpa_raw,
     credits_earned as _credits_earned_raw,
     eligible_degrees as _eligible_degrees_raw,
+    time_to_degree_estimate as _time_to_degree_estimate_raw,
+)
+from core.db_assignments import (
+    save_assignment as _save_assignment_raw,
+    submit_assignment as _submit_assignment_raw,
+    start_assignment as _start_assignment_raw,
+    get_assessment_hours as _get_assessment_hours_raw,
+    flag_prove_it as _flag_prove_it_raw,
+    get_assignments as _get_assignments_raw,
+    get_overdue as _get_overdue_raw,
 )
 from core.db_import import (
     validate_course_json,
@@ -79,6 +90,37 @@ from core.db_activity import (
     log_activity as _log_activity_raw,
     get_activity_summary as _get_activity_summary_raw,
 )
+from core.university import create_tables as _create_university_tables
+from core.course_tree import (
+    create_tables as _create_course_tree_tables,
+    seed_benchmarks as _seed_benchmarks_raw,
+    CREDIT_HOUR_RATIO,
+    AI_POLICY_LEVELS,
+    BLOOMS_LEVELS,
+    PACING_OPTIONS,
+    get_child_courses as _get_child_courses_raw,
+    get_course_tree as _get_course_tree_raw,
+    get_course_depth as _get_course_depth_raw,
+    get_root_course as _get_root_course_raw,
+    course_completion_pct as _course_completion_pct_raw,
+    course_credit_hours as _course_credit_hours_raw,
+    hours_to_credits,
+    log_study_hours as _log_study_hours_raw,
+    get_study_hours as _get_study_hours_raw,
+    check_qualifications as _check_qualifications_raw,
+    get_qualifications as _get_qualifications_raw,
+    get_all_benchmarks as _get_all_benchmarks_raw,
+    get_qualification_roadmap as _get_qualification_roadmap_raw,
+    get_pacing_for_course as _get_pacing_for_course_raw,
+    PACING_TEMPLATES,
+    AI_POLICY_DEFAULTS,
+    get_default_ai_policy,
+    get_assignment_ai_policy,
+    record_competency_score as _record_competency_score_raw,
+    get_competency_profile as _get_competency_profile_raw,
+    check_mastery as _check_mastery_raw,
+    get_benchmark_comparison as _get_benchmark_comparison_raw,
+)
 from core.db_shims import make_shims
 
 DB_PATH = Path(__file__).resolve().parent.parent / "university.db"
@@ -116,6 +158,13 @@ def init_db() -> None:
             data        TEXT,
             source      TEXT DEFAULT 'imported',
             subject_id  TEXT,
+            parent_course_id TEXT,
+            depth_level INTEGER DEFAULT 0,
+            depth_target INTEGER DEFAULT 0,
+            pacing      TEXT DEFAULT 'standard',
+            credit_hours REAL DEFAULT 0,
+            is_jargon_course INTEGER DEFAULT 0,
+            jargon      TEXT,
             created_at  REAL DEFAULT (unixepoch())
         );
 
@@ -158,13 +207,16 @@ def init_db() -> None:
             type         TEXT DEFAULT 'quiz',
             due_at       REAL,
             submitted_at REAL,
+            started_at   REAL,
+            duration_s   REAL DEFAULT 0,
             score        REAL,
             max_score    REAL DEFAULT 100,
             feedback     TEXT,
             data         TEXT,
             weight       REAL DEFAULT 1.0,
             term_id      TEXT,
-            late_penalty REAL DEFAULT 0.0
+            late_penalty REAL DEFAULT 0.0,
+            ai_policy    TEXT
         );
 
         CREATE TABLE IF NOT EXISTS xp_events (
@@ -258,6 +310,8 @@ def init_db() -> None:
     _create_test_prep_tables(tx)
     _create_program_tables(tx)
     _create_activity_tables(tx)
+    _create_university_tables(tx)
+    _create_course_tree_tables(tx)
 
 
 # ─── Schema migrations ────────────────────────────────────────────────────────
@@ -265,6 +319,19 @@ def init_db() -> None:
 _MIGRATIONS: list[tuple[int, str, str]] = [
     # (version, label, SQL)
     (1, "add subject_id to courses", "ALTER TABLE courses ADD COLUMN subject_id TEXT;"),
+    (2, "add course tree columns",
+     "ALTER TABLE courses ADD COLUMN parent_course_id TEXT;\n"
+     "ALTER TABLE courses ADD COLUMN depth_level INTEGER DEFAULT 0;\n"
+     "ALTER TABLE courses ADD COLUMN depth_target INTEGER DEFAULT 0;\n"
+     "ALTER TABLE courses ADD COLUMN pacing TEXT DEFAULT 'standard';\n"
+     "ALTER TABLE courses ADD COLUMN credit_hours REAL DEFAULT 0;\n"
+     "ALTER TABLE courses ADD COLUMN is_jargon_course INTEGER DEFAULT 0;\n"
+     "ALTER TABLE courses ADD COLUMN jargon TEXT;"),
+    (3, "add ai_policy to assignments",
+     "ALTER TABLE assignments ADD COLUMN ai_policy TEXT;"),
+    (4, "add assessment time tracking to assignments",
+     "ALTER TABLE assignments ADD COLUMN started_at REAL;\n"
+     "ALTER TABLE assignments ADD COLUMN duration_s REAL DEFAULT 0;"),
 ]
 
 
@@ -314,7 +381,7 @@ LEVELS = [
     (100,   "Initiate"),
     (300,   "Scholar"),
     (700,   "Adept"),
-    (1500,  "Sorcerer"),
+    (1500,  "Expert"),
     (3000,  "Sage"),
     (6000,  "Transcendent"),
     (10000, "Grandmaster"),
@@ -381,11 +448,19 @@ def get_level(xp: int | None = None) -> tuple[int, str, int, int]:
 
 # ─── Courses ───────────────────────────────────────────────────────────────────
 
-def upsert_course(course_id: str, title: str, description: str, credits: int, data: dict, source: str = "imported") -> None:
+def upsert_course(course_id: str, title: str, description: str, credits: int, data: dict,
+                  source: str = "imported", parent_course_id: str | None = None,
+                  depth_level: int = 0, depth_target: int = 0, pacing: str = "standard",
+                  is_jargon_course: int = 0, jargon: str | None = None) -> None:
     with tx() as con:
         con.execute(
-            "INSERT OR REPLACE INTO courses (id,title,description,credits,data,source) VALUES (?,?,?,?,?,?)",
-            (course_id, title, description, credits, json.dumps(data), source),
+            "INSERT OR REPLACE INTO courses "
+            "(id,title,description,credits,data,source,parent_course_id,depth_level,"
+            "depth_target,pacing,is_jargon_course,jargon) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+            (course_id, title, description, credits, json.dumps(data), source,
+             parent_course_id, depth_level, depth_target, pacing,
+             is_jargon_course, jargon),
         )
 
 
@@ -409,6 +484,12 @@ def get_all_courses() -> list[dict]:
     with tx() as con:
         rows = con.execute("SELECT * FROM courses ORDER BY created_at").fetchall()
     return [dict(r) for r in rows]
+
+
+def get_course(course_id: str) -> dict | None:
+    with tx() as con:
+        row = con.execute("SELECT * FROM courses WHERE id=?", (course_id,)).fetchone()
+    return dict(row) if row else None
 
 
 def get_modules(course_id: str) -> list[dict]:
@@ -465,74 +546,38 @@ def count_completed() -> int:
     return row["n"]
 
 
-# ─── Assignments ───────────────────────────────────────────────────────────────
+# ─── Assignments (delegated to db_assignments.py) ──────────────────────────────
 
 def save_assignment(assignment: dict) -> None:
-    with tx() as con:
-        con.execute(
-            """INSERT OR REPLACE INTO assignments
-               (id,lecture_id,course_id,title,description,type,due_at,max_score,data,weight,term_id)
-               VALUES (:id,:lecture_id,:course_id,:title,:description,:type,:due_at,:max_score,:data,:weight,:term_id)""",
-            {
-                "id": assignment["id"],
-                "lecture_id": assignment.get("lecture_id"),
-                "course_id": assignment.get("course_id"),
-                "title": assignment["title"],
-                "description": assignment.get("description", ""),
-                "type": assignment.get("type", "quiz"),
-                "due_at": assignment.get("due_at"),
-                "max_score": assignment.get("max_score", 100),
-                "data": json.dumps(assignment.get("data", {})),
-                "weight": assignment.get("weight", 1.0),
-                "term_id": assignment.get("term_id"),
-            },
-        )
-
+    _save_assignment_raw(assignment, tx)
 
 
 def submit_assignment(assignment_id: str, score: float, feedback: str = "") -> None:
-    now = time.time()
-    late_penalty = 0.0
-    if get_setting("deadlines_enabled", "0") == "1":
-        with tx() as con:
-            row = con.execute("SELECT due_at FROM assignments WHERE id=?", (assignment_id,)).fetchone()
-        if row and row["due_at"] and now > row["due_at"]:
-            days_late = (now - row["due_at"]) / 86400.0
-            late_penalty = min(days_late * 10.0, 50.0)
-    adjusted_score = max(score - (score * late_penalty / 100.0), 0)
-    with tx() as con:
-        con.execute(
-            "UPDATE assignments SET submitted_at=?, score=?, feedback=?, late_penalty=? WHERE id=?",
-            (now, adjusted_score, feedback, late_penalty, assignment_id),
-        )
-        max_sc = con.execute("SELECT max_score FROM assignments WHERE id=?", (assignment_id,)).fetchone()
-    unlock_achievement("first_quiz")
-    if max_sc and max_sc["max_score"] and max_sc["max_score"] > 0 and adjusted_score >= max_sc["max_score"]:
-        unlock_achievement("perfect_score")
-    if datetime.now().hour < 5:
-        unlock_achievement("night_owl")
-    add_xp(50, f"Submitted assignment {assignment_id}", "assignment")
-    update_quest_progress("submit_assignment")
-    _check_achievements_degrees()
+    _submit_assignment_raw(
+        assignment_id, score, feedback, tx, get_setting,
+        add_xp, unlock_achievement, update_quest_progress,
+        _check_achievements_degrees,
+    )
+
+
+def start_assignment(assignment_id: str) -> None:
+    _start_assignment_raw(assignment_id, tx)
+
+
+def get_assessment_hours(course_id: str) -> float:
+    return _get_assessment_hours_raw(course_id, tx)
+
+
+def flag_prove_it(assignment_id: str) -> dict | None:
+    return _flag_prove_it_raw(assignment_id, tx)
 
 
 def get_assignments(course_id: str | None = None) -> list[dict]:
-    with tx() as con:
-        if course_id:
-            rows = con.execute("SELECT * FROM assignments WHERE course_id=? ORDER BY due_at", (course_id,)).fetchall()
-        else:
-            rows = con.execute("SELECT * FROM assignments ORDER BY due_at").fetchall()
-    return [dict(r) for r in rows]
+    return _get_assignments_raw(course_id, tx)
 
 
 def get_overdue(now: float | None = None) -> list[dict]:
-    now = now or time.time()
-    with tx() as con:
-        rows = con.execute(
-            "SELECT * FROM assignments WHERE due_at IS NOT NULL AND due_at < ? AND submitted_at IS NULL",
-            (now,),
-        ).fetchall()
-    return [dict(r) for r in rows]
+    return _get_overdue_raw(now, tx)
 
 
 # ─── GPA & Grades (delegated to db_grades.py) ─────────────────────────────────
@@ -748,6 +793,82 @@ seed_achievements()
 seed_weekly_quests()
 _seed_grade_levels_raw(tx)
 _seed_subjects_raw(tx)
+_seed_benchmarks_raw(tx)
+
+
+# ─── Course Tree (delegated to course_tree.py) ─────────────────────────────────
+
+def get_child_courses(parent_id: str) -> list[dict]:
+    return _get_child_courses_raw(parent_id, tx)
+
+
+def get_course_tree(root_id: str) -> list[dict]:
+    return _get_course_tree_raw(root_id, tx)
+
+
+def get_course_depth(course_id: str) -> int:
+    return _get_course_depth_raw(course_id, tx)
+
+
+def get_root_course(course_id: str) -> str:
+    return _get_root_course_raw(course_id, tx)
+
+
+def course_completion_pct(course_id: str) -> float:
+    return _course_completion_pct_raw(course_id, tx)
+
+
+def course_credit_hours(course_id: str) -> float:
+    return _course_credit_hours_raw(course_id, tx)
+
+
+def log_study_hours(course_id: str, hours: float, activity_type: str = "study", notes: str = "") -> None:
+    _log_study_hours_raw(course_id, hours, activity_type, notes, tx_func=tx)
+
+
+def get_study_hours(course_id: str) -> list[dict]:
+    return _get_study_hours_raw(course_id, tx)
+
+
+def check_qualifications() -> list[dict]:
+    return _check_qualifications_raw(tx, compute_gpa, credits_earned)
+
+
+def get_qualifications() -> list[dict]:
+    return _get_qualifications_raw(tx)
+
+
+def get_all_benchmarks() -> list[dict]:
+    return _get_all_benchmarks_raw(tx)
+
+
+def get_qualification_roadmap(benchmark_id: str) -> dict:
+    return _get_qualification_roadmap_raw(benchmark_id, tx)
+
+
+def get_pacing_for_course(course_id: str) -> str:
+    return _get_pacing_for_course_raw(course_id, tx)
+
+
+def record_competency_score(course_id: str, blooms_level: str, score: float,
+                            max_score: float = 100, assessment_id: str = "") -> None:
+    _record_competency_score_raw(course_id, blooms_level, score, max_score, assessment_id, tx_func=tx)
+
+
+def get_competency_profile(course_id: str) -> dict:
+    return _get_competency_profile_raw(course_id, tx)
+
+
+def check_mastery(course_id: str, min_pct: float = 70.0) -> dict:
+    return _check_mastery_raw(course_id, tx, min_pct)
+
+
+def time_to_degree_estimate(target_degree: str = "Bachelor") -> dict | None:
+    return _time_to_degree_estimate_raw(tx, target_degree)
+
+
+def get_benchmark_comparison(benchmark_id: str) -> dict:
+    return _get_benchmark_comparison_raw(benchmark_id, tx)
 
 
 # ─── Compatibility shims (re-exported for UI pages) ────────────────────────────

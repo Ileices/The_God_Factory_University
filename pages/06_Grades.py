@@ -18,9 +18,12 @@ from core.database import (
     get_all_courses, get_assignments, compute_gpa, credits_earned,
     eligible_degrees, get_setting, score_to_grade,
     get_enrollment_date, time_to_degree_days, get_terms, get_assignments_by_term,
+    course_credit_hours, course_completion_pct, hours_to_credits,
+    get_competency_profile, BLOOMS_LEVELS, get_assignment_ai_policy,
+    time_to_degree_estimate, get_assessment_hours, DEGREE_TRACKS,
 )
 from ui.theme import (
-    inject_theme, gf_header, rune_divider, render_gpa_display,
+    inject_theme, gf_header, section_divider, render_gpa_display,
     degree_display, deadline_pill, help_button,
 )
 
@@ -29,7 +32,7 @@ gf_header("Grades & Transcript", "Your academic record at The God Factory.")
 help_button("gpa-calculation")
 
 student_name = get_setting("student_name", "Scholar")
-rune_divider(f"Student: {student_name}")
+section_divider(f"Student: {student_name}")
 
 # ─── GPA + Credit summary ──────────────────────────────────────────────────────
 gpa, _ = compute_gpa()
@@ -42,9 +45,21 @@ with g1:
     render_gpa_display(gpa)
 with g2:
     from ui.theme import stat_card
-    stat_card("Credits Earned", str(credits), colour="#ffd700")
+    stat_card("Credits Earned", f"{credits:.2f}", colour="#ffd700")
 with g3:
     stat_card("Eligible Degrees", ", ".join(eligible) if eligible else "None yet", colour="#40dc80")
+
+# Credit-hours summary
+total_hours = sum(course_credit_hours(c["id"]) for c in get_all_courses())
+hour_credits = hours_to_credits(total_hours)
+assess_hours = sum(get_assessment_hours(c["id"]) for c in get_all_courses())
+h1, h2, h3 = st.columns(3)
+with h1:
+    stat_card("Total Study Hours", f"{total_hours:.1f}", colour="#00d4ff")
+with h2:
+    stat_card("Assessment Hours", f"{assess_hours:.1f}", colour="#e04040")
+with h3:
+    stat_card("Hour-Based Credits", f"{hour_credits:.1f}", colour="#ff8c00")
 
 # Enrollment & Time-to-degree
 g4, g5 = st.columns(2)
@@ -56,7 +71,7 @@ with g5:
 # Term grouping (if any terms exist)
 terms = get_terms()
 if terms:
-    rune_divider("Assignments by Term")
+    section_divider("Assignments by Term")
     for term in terms:
         ta = get_assignments_by_term(term["id"])
         if not ta:
@@ -77,7 +92,14 @@ if terms:
 if eligible:
     degree_display(eligible)
 
-rune_divider("Assignments by Course")
+section_divider("Assignments by Course")
+
+_AI_BADGE = {
+    "unrestricted": "<span style='color:#40dc80;' title='AI: Unrestricted'>[OPEN]</span>",
+    "assisted": "<span style='color:#ffd700;' title='AI: Assisted'>[AIDED]</span>",
+    "supervised": "<span style='color:#ff8c00;' title='AI: Supervised'>[WATCH]</span>",
+    "prohibited": "<span style='color:#e04040;' title='AI: Prohibited'>[NONE]</span>",
+}
 
 courses = get_all_courses()
 if not courses:
@@ -86,9 +108,18 @@ if not courses:
 
 for course in courses:
     assignments = get_assignments(course["id"])
+    cr_hours = course_credit_hours(course["id"])
+    comp_pct = course_completion_pct(course["id"])
+    course_credits = course["credits"]
+    fractional = round(comp_pct / 100.0 * course_credits, 2) if course_credits else 0
+
+    label = f"{course['id']} -- {course['title']}  ({len(assignments)} asgn"
+    if cr_hours > 0:
+        label += f", {cr_hours:.1f}h, {fractional:.2f}/{course_credits} cr"
+    label += ")"
     if not assignments:
         continue
-    with st.expander(f"{course['id']} — {course['title']}  ({len(assignments)} assignments)"):
+    with st.expander(label):
         rows = []
         for a in assignments:
             score = a.get("score") or 0.0
@@ -98,14 +129,16 @@ for course in courses:
             submitted = bool(a.get("submitted_at"))
             due = a.get("due_at")
             now = time.time()
+            policy = get_assignment_ai_policy(a)
+            badge = _AI_BADGE.get(policy.get("level", "assisted"), _AI_BADGE["assisted"])
 
             status_str = "Graded" if submitted else ("Past due" if (deadlines_on and due and now > due) else "Open")
             rows.append({
                 "Title": a["title"],
                 "Type": a["type"],
-                "Score": f"{score}/{max_s}" if submitted else "—",
-                "Grade": grade if submitted else "—",
-                "GPA pts": f"{gpa_pts:.1f}" if submitted else "—",
+                "AI": policy.get("level", "assisted"),
+                "Score": f"{score}/{max_s}" if submitted else "--",
+                "Grade": grade if submitted else "--",
                 "Status": status_str,
             })
 
@@ -123,7 +156,7 @@ for course in courses:
                     unsafe_allow_html=True,
                 )
 
-rune_divider("Download Transcript")
+section_divider("Download Transcript")
 help_button("transcript-download")
 
 def build_transcript_csv():
@@ -189,26 +222,28 @@ with dl2:
         use_container_width=True,
     )
 
-rune_divider("Degree Progress")
+section_divider("Degree Progress")
 help_button("degree-eligibility")
 
-DEGREE_TRACKS = {
-    "Certificate":  {"min_credits": 15,  "min_gpa": 2.0, "colour": "#40dc80"},
-    "Associate":    {"min_credits": 60,  "min_gpa": 2.0, "colour": "#00d4ff"},
-    "Bachelor":     {"min_credits": 120, "min_gpa": 2.0, "colour": "#8080ff"},
-    "Master":       {"min_credits": 150, "min_gpa": 3.0, "colour": "#ffd700"},
-    "Doctorate":    {"min_credits": 180, "min_gpa": 3.5, "colour": "#e04040"},
+_DEGREE_COLOURS = {
+    "Certificate": "#40dc80",
+    "Associate": "#00d4ff",
+    "Bachelor": "#8080ff",
+    "Master": "#ffd700",
+    "Doctorate": "#e04040",
 }
 
 for degree, info in DEGREE_TRACKS.items():
     credit_pct = min(credits / info["min_credits"], 1.0)
+    hours_needed = info.get("min_hours", info["min_credits"] * 45)
+    hours_pct = min(total_hours / hours_needed, 1.0) if hours_needed else 1.0
     gpa_ok = gpa >= info["min_gpa"]
     unlocked = degree in eligible
-    colour = info["colour"] if unlocked else "#303050"
+    colour = _DEGREE_COLOURS.get(degree, "#8080ff") if unlocked else "#303050"
 
     bar_fill = int(credit_pct * 30)
     bar_empty = 30 - bar_fill
-    bar = "█" * bar_fill + "░" * bar_empty
+    bar = "\u2588" * bar_fill + "\u2591" * bar_empty
 
     gpa_marker = "[GPA OK]" if gpa_ok else f"[GPA: need {info['min_gpa']:.1f}]"
     status_marker = "[ELIGIBLE]" if unlocked else "[LOCKED]"
@@ -218,8 +253,29 @@ for degree, info in DEGREE_TRACKS.items():
         f"<span style='color:{colour};font-weight:bold;'>{degree:<12}</span>  "
         f"<span style='color:#404060;'>[{bar}]</span>  "
         f"<span style='color:#a0a0c0;font-size:0.85rem;'>"
-        f"{credits}/{info['min_credits']} cr  {gpa_marker}  "
+        f"{credits:.1f}/{info['min_credits']} cr  "
+        f"({total_hours:.0f}/{hours_needed:.0f} hrs)  "
+        f"{gpa_marker}  "
         f"<span style='color:{colour};'>{status_marker}</span>"
         f"</span></div>",
         unsafe_allow_html=True,
     )
+
+# Time-to-degree estimate
+section_divider("Time-to-Degree Estimate")
+target_degree = st.selectbox("Target Degree", list(DEGREE_TRACKS.keys()), index=2)
+estimate = time_to_degree_estimate(target_degree)
+if estimate:
+    e1, e2, e3 = st.columns(3)
+    with e1:
+        stat_card("Credits Needed", f"{estimate['credits_needed']:.1f}", colour="#ff8c00")
+    with e2:
+        stat_card("Hours Remaining", f"{estimate['hours_needed']:.0f}", colour="#00d4ff")
+    with e3:
+        days = estimate["est_days_remaining"]
+        if days > 0:
+            stat_card("Est. Days Left", f"{days:.0f}", colour="#ffd700")
+        else:
+            stat_card("Est. Days Left", "-- (need more data)" if estimate["credits_earned"] == 0 else "0", colour="#40dc80")
+    if not estimate["gpa_met"]:
+        st.warning(f"GPA of {gpa:.2f} is below the {DEGREE_TRACKS[target_degree]['min_gpa']:.1f} minimum for {target_degree}.")

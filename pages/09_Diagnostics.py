@@ -18,7 +18,7 @@ from core.database import (
     get_xp, get_level, count_completed, compute_gpa,
     credits_earned, get_assignments,
 )
-from ui.theme import inject_theme, gf_header, rune_divider, help_button
+from ui.theme import inject_theme, gf_header, section_divider, help_button
 
 inject_theme()
 gf_header("Diagnostics", "Under the hood of the knowledge machinery.")
@@ -26,7 +26,7 @@ help_button("diagnostics-page")
 
 
 # ─── Environment ─────────────────────────────────────────────────────────────
-rune_divider("Environment")
+section_divider("Environment")
 col1, col2 = st.columns(2)
 
 with col1:
@@ -50,7 +50,7 @@ with col2:
 
 
 # ─── Dependency Versions ─────────────────────────────────────────────────────
-rune_divider("Dependencies")
+section_divider("Dependencies")
 
 DEPS = [
     "streamlit", "moviepy", "imageio", "imageio_ffmpeg", "PIL",
@@ -79,7 +79,7 @@ except Exception as e:
 
 
 # ─── Database Stats ──────────────────────────────────────────────────────────
-rune_divider("Database Stats")
+section_divider("Database Stats")
 
 courses = get_all_courses()
 total_mods = 0
@@ -116,7 +116,7 @@ st.markdown(f"**XP:** {xp:,}  |  **Level:** {level_idx} ({level_name})  |  "
 
 
 # ─── LLM Provider Config ────────────────────────────────────────────────────
-rune_divider("LLM Provider")
+section_divider("LLM Provider")
 help_button("llm-test")
 
 provider = get_setting("llm_provider", "ollama")
@@ -147,7 +147,7 @@ if st.button("Test LLM Connection"):
 
 
 # ─── Audio Engine ────────────────────────────────────────────────────────────
-rune_divider("Audio Engine")
+section_divider("Audio Engine")
 
 voice_id = get_setting("voice_id", "en-US-AriaNeural")
 binaural = get_setting("binaural_mode", "gamma_40hz")
@@ -169,7 +169,7 @@ if st.button("Test TTS"):
 
 
 # ─── Video Engine ────────────────────────────────────────────────────────────
-rune_divider("Video Engine")
+section_divider("Video Engine")
 
 vid_fps = get_setting("video_fps", "15")
 vid_w = get_setting("video_width", "960")
@@ -178,7 +178,7 @@ st.code(f"Resolution: {vid_w}x{vid_h} @ {vid_fps} fps", language="text")
 
 
 # ─── Settings Dump ──────────────────────────────────────────────────────────
-rune_divider("All Settings")
+section_divider("All Settings")
 
 with st.expander("View raw settings table"):
     try:
@@ -198,7 +198,7 @@ with st.expander("View raw settings table"):
 
 
 # ─── Page Import Check ──────────────────────────────────────────────────────
-rune_divider("Module Health")
+section_divider("Module Health")
 help_button("compile-check")
 
 with st.expander("Compile check for all pages and modules"):
@@ -236,7 +236,7 @@ with st.expander("Compile check for all pages and modules"):
 
 
 # ─── Recent Error Log ───────────────────────────────────────────────────────
-rune_divider("Recent Errors")
+section_divider("Recent Errors")
 log_file = ROOT / "logs" / "god_factory.log"
 if log_file.exists():
     import json as _json

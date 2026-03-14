@@ -220,7 +220,11 @@ def _uid(prefix: str) -> str:
 
 
 def _generate_course_json(level_id: str, subject_key: str, title: str,
-                          modules: list[str], level_name: str) -> dict:
+                          modules: list[str], level_name: str,
+                          parent_course_id: str | None = None,
+                          depth_level: int = 0,
+                          depth_target: int = 0,
+                          pacing: str = "standard") -> dict:
     """Generate a valid course JSON dict for one course."""
     course_id = f"{level_id}_{subject_key}"
     credit_map = {
@@ -231,12 +235,24 @@ def _generate_course_json(level_id: str, subject_key: str, title: str,
     }
     credits = credit_map.get(level_id, 3)
 
+    # Depth targets by level — how many sub-course decompositions expected
+    default_depth_targets = {
+        "K": 1, "1": 1, "2": 1, "3": 1, "4": 2, "5": 2,
+        "6": 2, "7": 2, "8": 2, "9": 3, "10": 3, "11": 3, "12": 3,
+        "freshman": 3, "sophomore": 3, "junior": 4, "senior": 4,
+        "masters": 5, "doctoral": 6, "postdoc": 7,
+    }
+
     course = {
         "course_id": course_id,
         "title": f"{title} ({level_name})",
         "description": f"{title} for {level_name} students.",
         "credits": credits,
         "subject_id": subject_key,
+        "parent_course_id": parent_course_id,
+        "depth_level": depth_level,
+        "depth_target": depth_target or default_depth_targets.get(level_id, 3),
+        "pacing": pacing,
         "modules": [],
     }
 
@@ -347,12 +363,37 @@ def main():
     parser.add_argument("--import-db", action="store_true", help="Import generated courses into database")
     parser.add_argument("--dry-run", action="store_true", help="Validate only, no DB write")
     parser.add_argument("--list-levels", action="store_true", help="List available levels")
+    parser.add_argument("--decompose", help="Decompose an existing course into sub-courses (course_id)")
+    parser.add_argument("--depth", type=int, default=None, help="Target decomposition depth")
+    parser.add_argument("--pacing", choices=["fast", "standard", "slow"], default=None,
+                        help="Pacing for generated sub-courses")
     args = parser.parse_args()
 
     if args.list_levels:
         for lid, data in _CURRICULUM.items():
             n = len(data["subjects"])
             print(f"  {lid:12s}  {data['name']:30s}  {n} courses")
+        return
+
+    if args.decompose:
+        from llm.professor import Professor
+        prof = Professor(session_id="curriculum_gen")
+        print(f"Decomposing course: {args.decompose}")
+        resp = prof.decompose_course(
+            args.decompose,
+            depth=args.depth,
+            pacing=args.pacing,
+            progress_callback=lambda msg: print(f"  {msg}"),
+        )
+        if resp.warnings:
+            for w in resp.warnings:
+                print(f"  Warning: {w}")
+        if resp.parsed_json:
+            print(f"  Created {resp.parsed_json.get('sub_courses_created', 0)} sub-courses")
+            for sid in resp.parsed_json.get("sub_course_ids", []):
+                print(f"    - {sid}")
+        else:
+            print("  Decomposition failed.")
         return
 
     # Generate

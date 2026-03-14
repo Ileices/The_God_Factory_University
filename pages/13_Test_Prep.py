@@ -14,14 +14,14 @@ sys.path.insert(0, str(ROOT))
 
 from core.database import add_xp, tx
 from core import test_prep
-from ui.theme import inject_theme, gf_header, rune_divider, stat_card, help_button
+from ui.theme import inject_theme, gf_header, section_divider, stat_card, help_button
 
 inject_theme()
 gf_header("Test Prep", "Practice standardized tests with adaptive scoring.")
 help_button("test-prep")
 
 # ─── Test Selection ───────────────────────────────────────────────────────────
-rune_divider("Select Test")
+section_divider("Select Test")
 
 tests = test_prep.get_test_names()
 sel_test = st.selectbox("Test", tests)
@@ -41,7 +41,7 @@ NUM_QUESTIONS = 10
 TIME_LIMIT_S = 600  # 10 minutes
 
 # ─── Start Test ───────────────────────────────────────────────────────────────
-rune_divider("Practice Session")
+section_divider("Practice Session")
 
 if st.session_state.tp_session_id is None:
     st.info(f"**{sel_test}** — {sel_section or 'All Sections'} | {NUM_QUESTIONS} questions | {TIME_LIMIT_S // 60} min time limit")
@@ -109,7 +109,7 @@ elif not st.session_state.tp_finished:
         st.rerun()
 else:
     result = st.session_state.get("tp_result", {})
-    rune_divider("Score Report")
+    section_divider("Score Report")
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
@@ -130,7 +130,7 @@ else:
         st.rerun()
 
 # ─── History ──────────────────────────────────────────────────────────────────
-rune_divider("Session History")
+section_divider("Session History")
 history = test_prep.get_session_history(sel_test, tx)
 if history:
     for s in history[:10]:

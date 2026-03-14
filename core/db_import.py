@@ -126,7 +126,12 @@ def _import_one_object(obj: dict, *, upsert_course, upsert_module, upsert_lectur
 def _import_course(obj: dict, *, upsert_course, upsert_module, upsert_lecture) -> None:
     course_id = obj.get("course_id") or obj.get("id") or f"course_{int(time.time())}"
     upsert_course(course_id, obj.get("title", "Imported"), obj.get("description", ""),
-                  obj.get("credits", 3), obj)
+                  obj.get("credits", 3), obj, parent_course_id=obj.get("parent_course_id"),
+                  depth_level=obj.get("depth_level", 0),
+                  depth_target=obj.get("depth_target", 0),
+                  pacing=obj.get("pacing", "standard"),
+                  is_jargon_course=1 if obj.get("is_jargon_course") else 0,
+                  jargon=json.dumps(obj["jargon"]) if obj.get("jargon") else None)
     for i, module in enumerate(obj.get("modules", [])):
         mid = module.get("module_id") or module.get("id") or f"{course_id}_M{i}"
         upsert_module(mid, course_id, module.get("title", f"Module {i}"), i, module)

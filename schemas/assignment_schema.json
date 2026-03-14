@@ -36,7 +36,7 @@
             "enum": [
               "K-5", "6-8", "9-12",
               "Freshman", "Sophomore", "Junior", "Senior",
-              "Masters", "Doctoral"
+              "Masters", "Doctoral", "Postdoctoral"
             ]
           },
           "max_score": { "type": "integer", "minimum": 1, "default": 100 },

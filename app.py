@@ -24,7 +24,7 @@ from core.database import (
     get_xp, count_completed, get_active_quests,
 )
 from ui.theme import (
-    inject_theme, gf_header, rune_divider,
+    inject_theme, gf_header, section_divider,
     xp_bar, level_badge, stat_card, help_button,
 )
 
@@ -46,14 +46,14 @@ if NOTES_FILE.exists() and not get_all_courses():
 with st.sidebar:
     st.markdown(
         "```\n╔══════════════════════╗\n"
-        "║   THE GOD FACTORY UNIVERSITY   ║\n"
+        "║          Ctrl        ║\n"
         "╚══════════════════════╝\n```"
     )
     level_idx, level_title, xp_in_level, xp_to_next = get_level()
     level_badge(level_idx, level_title)
     xp_bar(xp_in_level, max(xp_to_next, 1), "XP")
     st.caption(f"Lectures completed: {count_completed()}")
-    rune_divider("Navigation")
+    section_divider("Navigation")
     st.page_link("app.py",                       label="  [*] Dashboard")
     st.page_link("pages/01_Library.py",           label="  [>] Library")
     st.page_link("pages/02_Lecture_Studio.py",    label="  [>] Lecture Studio")
@@ -76,14 +76,14 @@ if _pending:
     st.success(f"LEVEL UP!  You have ascended to **{_pending}**!")
 
 # ─── Dashboard ───────────────────────────────────────────────────────────────
-gf_header("The God Factory University", "Where knowledge is power and every lesson is a quest.")
+gf_header("The God Factory University", "Come across terms in your studies that you want to understand better?\nSend them to Professor AI for an in-depth explanation, related resources, and a quiz to test your understanding.\nNeed more? Turn the unknown into entire courses in the Library. This University was built because Roswan is stupid.")
 help_button("dashboard-overview")
 
 courses = get_all_courses()
 xp_total = get_xp()
 completed = count_completed()
 
-rune_divider("Status")
+section_divider("Status")
 help_button("xp-and-levels")
 c1, c2, c3, c4 = st.columns(4)
 with c1:
@@ -99,14 +99,14 @@ with c4:
 if get_setting("quests_enabled", "1") == "1":
     quests = get_active_quests()
     if quests:
-        rune_divider("Weekly Quests")
+        section_divider("Weekly Quests")
         for q in quests:
             pct = int(q["progress"] / max(q["target"], 1) * 100)
-            icon = "🏆" if q["completed"] else "⚔️"
+            icon = "[*]" if q["completed"] else "[>]"
             st.markdown(f"{icon} **{q['title']}** — {q['progress']}/{q['target']}  (+{q['xp_reward']} XP)")
             st.progress(min(pct, 100))
 
-rune_divider("Quick Start")
+section_divider("Quick Start")
 st.markdown(
     "```\n"
     "HOW TO BEGIN\n"
@@ -125,7 +125,7 @@ st.markdown(
 )
 
 # ─── Startup Self-Check ─────────────────────────────────────────────────────
-rune_divider("System Health")
+section_divider("System Health")
 help_button("system-health")
 with st.expander("System self-check (click to expand)"):
 
@@ -194,7 +194,7 @@ with st.expander("System self-check (click to expand)"):
     else:
         st.warning(f"{checks_ok}/{checks_total} checks passed. See details above.")
 
-rune_divider("Active Courses")
+section_divider("Active Courses")
 if not courses:
     st.warning("No courses found. Go to Library > Bulk Import and paste a course JSON.")
 else:
@@ -208,3 +208,21 @@ else:
             f"</div>",
             unsafe_allow_html=True,
         )
+
+
+ 
+# ██      ██ █     █    ██    █ █ █▀▀▀▀█ █▀▀▀▀█ ████████
+# █ █    █ █  █   █     █ █   █ █ █      █      █      █
+# █  █  █  █   ███      █  █  █ █ █  ▄▄▄ █  ▄▄▄ █▄▄▄▄▄▄█
+# █   ██   █    █       █   █ █ █ █    █ █    █ █      █
+# █        █    █       █    ██ █ █▄▄▄▄█ █▄▄▄▄█ █      █
+
+
+
+
+
+# █ ¿≥,↕
+
+
+
+

@@ -12,14 +12,14 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from core.database import get_setting, save_setting
-from ui.theme import inject_theme, gf_header, rune_divider, play_sfx, help_button
+from ui.theme import inject_theme, gf_header, section_divider, play_sfx, help_button
 
 inject_theme()
 gf_header("Settings", "Calibrate your knowledge apparatus.")
 help_button("voice-settings")
 
 # ─── Student identity ──────────────────────────────────────────────────────────
-rune_divider("Student Identity")
+section_divider("Student Identity")
 student_name = st.text_input("Student name", value=get_setting("student_name", "Scholar"))
 if st.button("Save Name"):
     save_setting("student_name", student_name)
@@ -27,7 +27,7 @@ if st.button("Save Name"):
     st.success("Name saved.")
 
 # ─── Voice ────────────────────────────────────────────────────────────────────
-rune_divider("Voice Narration")
+section_divider("Voice Narration")
 help_button("voice-settings")
 
 VOICES = {
@@ -81,7 +81,7 @@ if st.button("Save Voice Settings"):
     st.success("Voice settings saved.")
 
 # ─── Binaural beats ───────────────────────────────────────────────────────────
-rune_divider("Binaural Beats")
+section_divider("Binaural Beats")
 help_button("binaural-beats")
 st.markdown(
     "<span style='color:#a0a0c0;font-family:monospace;font-size:0.82rem;'>"
@@ -122,14 +122,14 @@ if st.button("Save Binaural Setting"):
     st.success("Binaural preset saved.")
 
 # ─── LLM Provider ─────────────────────────────────────────────────────────────
-rune_divider("LLM Provider")
+section_divider("LLM Provider")
 cur_llm = get_setting("llm_provider", "ollama")
 cur_model = get_setting("llm_model", "")
 st.markdown(f"**Current:** `{cur_llm}` / `{cur_model or 'not set'}`")
-st.page_link("pages/11_LLM_Setup.py", label="Open LLM Setup Wizard", icon="🧠")
+st.page_link("pages/11_LLM_Setup.py", label="Open LLM Setup Wizard")
 
 # ─── Video quality ────────────────────────────────────────────────────────────
-rune_divider("Video Generation")
+section_divider("Video Generation")
 help_button("video-settings")
 
 QUALITY_PROFILES = {
@@ -174,7 +174,7 @@ if st.button("Save Video Settings"):
     st.success("Video settings saved.")
 
 # ─── Deadlines ────────────────────────────────────────────────────────────────
-rune_divider("Deadline System")
+section_divider("Deadline System")
 help_button("deadline-system")
 deadlines_on_val = get_setting("deadlines_enabled", "0") == "1"
 deadlines_toggle = st.toggle("Enable Deadlines", value=deadlines_on_val)
@@ -189,7 +189,7 @@ else:
     st.markdown("<span style='color:#606080;font-family:monospace;font-size:0.82rem;'>Deadline mode is OFF. Take your time.</span>", unsafe_allow_html=True)
 
 # ─── Weekly Quests ────────────────────────────────────────────────────────────
-rune_divider("Weekly Quests")
+section_divider("Weekly Quests")
 quests_on_val = get_setting("quests_enabled", "1") == "1"
 quests_toggle = st.toggle("Enable Weekly Quests", value=quests_on_val)
 if quests_toggle != quests_on_val:

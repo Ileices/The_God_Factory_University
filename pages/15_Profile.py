@@ -15,14 +15,14 @@ from core.database import (
     get_enrollment_date, time_to_degree_days, compute_gpa, credits_earned, tx,
 )
 from core import db_activity
-from ui.theme import inject_theme, gf_header, rune_divider, stat_card, help_button
+from ui.theme import inject_theme, gf_header, section_divider, stat_card, help_button
 
 inject_theme()
 gf_header("Student Profile", "Your academic identity and preferences.")
 help_button("student-profile")
 
 # ─── Basic Info ───────────────────────────────────────────────────────────────
-rune_divider("Identity")
+section_divider("Identity")
 
 name = get_setting("student_name", "Scholar")
 new_name = st.text_input("Display Name", value=name)
@@ -49,7 +49,7 @@ if level_names:
         st.success("Grade level updated!")
 
 # ─── Learning Preferences ────────────────────────────────────────────────────
-rune_divider("Learning Preferences")
+section_divider("Learning Preferences")
 
 STYLES = ["Visual", "Auditory", "Reading/Writing", "Kinesthetic"]
 current_style = db_activity.get_profile("learning_style", tx, default="Visual")
@@ -68,7 +68,7 @@ if new_pace != pace:
     db_activity.set_profile("study_pace", new_pace, tx)
 
 # ─── Academic Summary ─────────────────────────────────────────────────────────
-rune_divider("Academic Summary")
+section_divider("Academic Summary")
 
 total_xp = get_xp()
 lvl_idx, lvl_name, xp_in, xp_next = get_level(total_xp)
@@ -90,10 +90,10 @@ with c4:
 st.markdown(f"**Enrolled since:** {enroll_date} ({days} days)")
 
 # ─── Study Streak ─────────────────────────────────────────────────────────────
-rune_divider("Study Streak")
+section_divider("Study Streak")
 
 streak = int(get_setting("streak_days", "0"))
 last = get_setting("streak_last_date", "—")
-st.markdown(f"🔥 **{streak}** consecutive day{'s' if streak != 1 else ''} (last active: {last})")
+st.markdown(f"[STREAK] **{streak}** consecutive day{'s' if streak != 1 else ''} (last active: {last})")
 bonus = min(streak * 5, 50)
 st.caption(f"Current streak bonus: +{bonus}% XP")

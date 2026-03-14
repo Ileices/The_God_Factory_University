@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from core.help_registry import get_all_help, get_help
-from ui.theme import inject_theme, gf_header, rune_divider
+from ui.theme import inject_theme, gf_header, section_divider
 
 inject_theme()
 gf_header("Help", "Your guide to every feature of The God Factory University.")
@@ -25,7 +25,7 @@ if topic:
     entry = get_help(topic)
     if entry:
         st.info(f"Showing help for: {entry['title']}")
-        rune_divider(entry["title"])
+        section_divider(entry["title"])
         st.markdown(entry["text"])
         st.markdown("---")
         st.markdown("**Browse all help topics below.**")
@@ -33,7 +33,7 @@ if topic:
         st.warning(f"Help topic '{topic}' not found. Showing all topics.")
 
 # ─── Table of Contents ────────────────────────────────────────────────────────
-rune_divider("TABLE OF CONTENTS")
+section_divider("TABLE OF CONTENTS")
 
 entries = get_all_help()
 
@@ -86,14 +86,14 @@ with st.sidebar:
 
 # Render all groups
 for group_name, group_entries in groups.items():
-    rune_divider(group_name)
+    section_divider(group_name)
     for entry in group_entries:
         with st.expander(f"  {entry['title']}", expanded=(entry["anchor"] == topic)):
             st.markdown(entry["text"])
             st.caption(f"Help ID: {entry['anchor']}")
 
 # ─── Quick links ──────────────────────────────────────────────────────────────
-rune_divider("QUICK LINKS")
+section_divider("QUICK LINKS")
 col1, col2, col3 = st.columns(3)
 with col1:
     st.markdown("**Getting Started**")

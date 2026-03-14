@@ -61,6 +61,28 @@ from media.audio_engine import (
 ROOT = Path(__file__).resolve().parent.parent
 CACHE_DIR = ROOT / "exports" / "_video_cache"
 
+
+# ─── VFX config loader ────────────────────────────────────────────────────────
+
+def _load_vfx_config() -> dict:
+    """Load VFX configuration from settings. Returns defaults if not set."""
+    raw = get_setting("vfx_config", "")
+    defaults = {
+        "transitions": True,
+        "ken_burns": True,
+        "color_grade": True,
+        "text_overlay": True,
+        "ambient_particles": True,
+        "watermark": False,
+    }
+    if raw:
+        try:
+            cfg = json.loads(raw)
+            defaults.update(cfg)
+        except (json.JSONDecodeError, ValueError):
+            pass
+    return defaults
+
 # ─── Colour palette (dark academic) ────────────────────────────────────────
 PALETTE = {
     "bg_dark":   (6,  8, 18),
@@ -137,7 +159,8 @@ def _draw_particles(draw: ImageDraw.ImageDraw, particles: list[tuple], t: float,
 
 def _frame_renderer(lecture: dict, scene: dict, particles: list[tuple],
                     narration_words: list[str], total_duration: float,
-                    W: int, H: int) -> Callable[[float], np.ndarray]:
+                    W: int, H: int, vfx: dict | None = None) -> Callable[[float], np.ndarray]:
+    vfx = vfx or _load_vfx_config()
     title_font  = _load_font(max(18, W // 48))
     body_font   = _load_font(max(14, W // 62))
     small_font  = _load_font(max(11, W // 80))
@@ -163,8 +186,9 @@ def _frame_renderer(lecture: dict, scene: dict, particles: list[tuple],
             b = int(PALETTE["bg_dark"][2] * (1 - ratio) + PALETTE["bg_mid"][2] * ratio)
             draw.line([(0, y), (W, y)], fill=(r, g, b))
 
-        # Particles
-        _draw_particles(draw, particles, t, W, H)
+        # Particles (respects VFX toggle)
+        if vfx.get("ambient_particles", True):
+            _draw_particles(draw, particles, t, W, H)
 
         # Scan-line overlay (every 4 pixels)
         for y in range(0, H, 4):
@@ -176,14 +200,17 @@ def _frame_renderer(lecture: dict, scene: dict, particles: list[tuple],
         pad = 10
         draw.rectangle([pad, pad, W - pad - 1, H - pad - 1], outline=border_col, width=2)
 
-        # ── Header bar ───────────────────────────────────────────────────────
-        header_h = int(H * 0.13)
-        draw.rectangle([pad + 2, pad + 2, W - pad - 3, pad + header_h], fill=(10, 20, 45))
-        draw.text((pad + 16, pad + 10), f"{lecture_id}  {lecture_title}",
-                  fill=PALETTE["cyan"], font=title_font)
-        draw.text((pad + 16, pad + header_h - small_font.size - 6 if hasattr(small_font, 'size') else pad + header_h - 20),
-                  f"Scene {block_id}  |  {int(duration_s)}s  |  {module_title}",
-                  fill=PALETTE["dim"], font=small_font)
+        # ── Header bar (respects text_overlay toggle) ────────────────────────
+        if vfx.get("text_overlay", True):
+            header_h = int(H * 0.13)
+            draw.rectangle([pad + 2, pad + 2, W - pad - 3, pad + header_h], fill=(10, 20, 45))
+            draw.text((pad + 16, pad + 10), f"{lecture_id}  {lecture_title}",
+                      fill=PALETTE["cyan"], font=title_font)
+            draw.text((pad + 16, pad + header_h - small_font.size - 6 if hasattr(small_font, 'size') else pad + header_h - 20),
+                      f"Scene {block_id}  |  {int(duration_s)}s  |  {module_title}",
+                      fill=PALETTE["dim"], font=small_font)
+        else:
+            header_h = int(H * 0.05)
 
         # ── Typewriter narration reveal ───────────────────────────────────────
         reveal_end = total_duration * 0.80
@@ -249,7 +276,38 @@ def _frame_renderer(lecture: dict, scene: dict, particles: list[tuple],
         draw.text((W - pad - 100, pad + 12), elapsed, fill=PALETTE["dim"], font=small_font)
         draw.text((W - pad - 100, pad + 27), remaining, fill=PALETTE["dim"], font=small_font)
 
-        return np.array(img)
+        # ── Watermark (VFX toggle) ───────────────────────────────────────────
+        if vfx.get("watermark", False):
+            wm_text = "The God Factory University"
+            draw.text((W - pad - 220, H - pad - 30), wm_text, fill=(60, 60, 80), font=small_font)
+
+        frame = np.array(img)
+
+        # ── Cinematic color grading (VFX toggle) ─────────────────────────────
+        if vfx.get("color_grade", True):
+            # Subtle teal/orange grade: boost blue in shadows, warm highlights
+            frame = frame.astype(np.float32)
+            frame[:, :, 0] = np.clip(frame[:, :, 0] * 0.95, 0, 255)   # slightly less red
+            frame[:, :, 1] = np.clip(frame[:, :, 1] * 1.0, 0, 255)    # green unchanged
+            frame[:, :, 2] = np.clip(frame[:, :, 2] * 1.08, 0, 255)   # boost blue
+            frame = frame.astype(np.uint8)
+
+        # ── Ken Burns pan/zoom (VFX toggle) ───────────────────────────────────
+        if vfx.get("ken_burns", True):
+            progress = t / max(total_duration, 1)
+            zoom = 1.0 + 0.05 * progress  # Subtle 5% zoom over duration
+            cH, cW = frame.shape[:2]
+            new_h = int(cH / zoom)
+            new_w = int(cW / zoom)
+            y_off = int((cH - new_h) / 2 * (0.5 + 0.5 * math.sin(progress * math.pi)))
+            x_off = int((cW - new_w) / 2)
+            cropped = frame[y_off:y_off + new_h, x_off:x_off + new_w]
+            if cropped.shape[0] > 0 and cropped.shape[1] > 0:
+                from PIL import Image as _PILResize
+                resized = _PILResize.fromarray(cropped).resize((cW, cH), _PILResize.BILINEAR)
+                frame = np.array(resized)
+
+        return frame
 
     return make_frame
 
@@ -302,9 +360,10 @@ def _build_scene_clip(lecture: dict, scene: dict, temp_dir: Path, voice_id: str,
         audio_mix = AFC(str(tts_path))
 
     # ── Video frames ──────────────────────────────────────────────────────────
+    vfx = _load_vfx_config()
     particles = _init_particles(hash(f"{lid}{bid}") & 0xFFFF, W, H)
     narration_words = narration.split()
-    make_frame = _frame_renderer(lecture, scene, particles, narration_words, dur, W, H)
+    make_frame = _frame_renderer(lecture, scene, particles, narration_words, dur, W, H, vfx=vfx)
 
     video = VideoClip(make_frame, duration=dur).set_fps(fps)
     video = video.set_audio(audio_mix)
@@ -365,6 +424,7 @@ def render_lecture(lecture_data: dict, output_dir: Path, chunk_by_scene: bool = 
 
     outputs: list[Path] = []
     ffmpeg_params = ["-preset", "fast"]
+    vfx = _load_vfx_config()
 
     actual_fps = fps or int(get_setting("video_fps", "15"))
 
@@ -378,6 +438,20 @@ def render_lecture(lecture_data: dict, output_dir: Path, chunk_by_scene: bool = 
     else:
         if len(clips) == 1:
             final = clips[0][1]
+        elif vfx.get("transitions", True) and len(clips) > 1:
+            # Crossfade transitions between scenes (0.5s overlap)
+            try:
+                from moviepy.editor import CompositeVideoClip
+                crossfade_dur = 0.5
+                scene_clips = [c for _, c in clips]
+                # Apply crossfade: each clip fades in over crossfade_dur
+                composed = [scene_clips[0]]
+                for i in range(1, len(scene_clips)):
+                    composed.append(scene_clips[i].crossfadein(crossfade_dur))
+                final = concatenate_videoclips(composed, padding=-crossfade_dur, method="compose")
+            except Exception:
+                # Fallback to simple concat if crossfade fails
+                final = concatenate_videoclips([c for _, c in clips], method="compose")
         else:
             final = concatenate_videoclips([c for _, c in clips], method="compose")
         out = output_dir / f"{lid}_full{suffix}.mp4"

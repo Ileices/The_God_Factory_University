@@ -46,7 +46,7 @@ _reg("xp-and-levels", "XP and Levels",
      "- Rendering videos (+5 XP)\n\n"
      "10 Ranks:\n"
      "Seeker (0) -> Initiate (100) -> Scholar (300) -> Adept (700) -> "
-     "Sorcerer (1500) -> Sage (3000) -> Transcendent (6000) -> Grandmaster (10000) -> "
+     "Expert (1500) -> Sage (3000) -> Transcendent (6000) -> Grandmaster (10000) -> "
      "Luminary (20000) -> Archon (50000)")
 
 # ─── Library ──────────────────────────────────────────────────────────────────
@@ -215,7 +215,7 @@ _reg("level-system", "Level System",
      "| 2 | Initiate | 100 |\n"
      "| 3 | Scholar | 300 |\n"
      "| 4 | Adept | 700 |\n"
-     "| 5 | Sorcerer | 1,500 |\n"
+     "| 5 | Expert | 1,500 |\n"
      "| 6 | Sage | 3,000 |\n"
      "| 7 | Transcendent | 6,000 |\n"
      "| 8 | Grandmaster | 10,000 |\n"

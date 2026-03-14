@@ -222,13 +222,17 @@ def gf_header(title: str, subtitle: str = "") -> None:
         st.caption(subtitle)
 
 
-def rune_divider(label: str = "") -> None:
+def section_divider(label: str = "") -> None:
     if label:
         line = f"◆─── {label.upper()} ───◆"
     else:
         line = "◆" + "─" * 58 + "◆"
     st.markdown(f"<p style='color:#00d4ff44;font-family:monospace;letter-spacing:2px;'>{line}</p>",
                 unsafe_allow_html=True)
+
+
+# Backward compatibility alias
+rune_divider = section_divider
 
 
 def stat_card(label: str, value: str, delta: str = "", colour: str = "#00d4ff") -> None:

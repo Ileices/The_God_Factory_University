@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from core.database import get_setting, save_setting
-from ui.theme import inject_theme, gf_header, rune_divider, stat_card, play_sfx, sanitize_llm_output
+from ui.theme import inject_theme, gf_header, section_divider, stat_card, play_sfx, sanitize_llm_output
 
 inject_theme()
 gf_header("LLM Setup Wizard", "Configure your AI model provider step by step.")
@@ -84,7 +84,7 @@ with st.sidebar:
     st.markdown(f"**API Key**: {'Set' if has_key else 'Not set'}")
 
 # ─── Step 1: Choose Type ─────────────────────────────────────────────────────
-rune_divider("STEP 1 — Choose Your Path")
+section_divider("STEP 1 — Choose Your Path")
 
 st.markdown("""
 **LOCAL models** run on your machine. They are free, private, and work offline.
@@ -119,7 +119,7 @@ wizard_path = st.session_state.get("wizard_path", "")
 
 # ─── Hardware Profile ─────────────────────────────────────────────────────────
 if wizard_path:
-    rune_divider("HARDWARE PROFILE")
+    section_divider("HARDWARE PROFILE")
     hw = _detect_hardware()
     h1, h2, h3, h4 = st.columns(4)
     with h1:
@@ -154,12 +154,12 @@ Quantized models (Q4, Q5) use roughly 40-60% of full precision memory.
 
 # ─── Local Provider Setup ─────────────────────────────────────────────────────
 if wizard_path == "local":
-    rune_divider("STEP 2 — Choose Local Provider")
+    section_divider("STEP 2 — Choose Local Provider")
 
     local_choice = st.radio("Select local LLM server:", ["Ollama", "LM Studio"], horizontal=True)
 
     if local_choice == "Ollama":
-        rune_divider("OLLAMA SETUP")
+        section_divider("OLLAMA SETUP")
         st.markdown("""
 ### Getting Started with Ollama
 
@@ -243,7 +243,7 @@ The Ollama service starts automatically after installation.
 """)
 
     elif local_choice == "LM Studio":
-        rune_divider("LM STUDIO SETUP")
+        section_divider("LM STUDIO SETUP")
         st.markdown("""
 ### Getting Started with LM Studio
 
@@ -311,7 +311,7 @@ The Ollama service starts automatically after installation.
 
 # ─── Cloud Provider Setup ─────────────────────────────────────────────────────
 if wizard_path == "cloud":
-    rune_divider("STEP 2 — Choose Cloud Provider")
+    section_divider("STEP 2 — Choose Cloud Provider")
 
     CLOUD_PROVIDERS = {
         "Groq (Free Tier, Very Fast)": {
@@ -433,7 +433,7 @@ if wizard_path == "cloud":
     provider_label = st.selectbox("Select a cloud provider:", list(CLOUD_PROVIDERS.keys()))
     prov = CLOUD_PROVIDERS[provider_label]
 
-    rune_divider(provider_label.split("(")[0].strip())
+    section_divider(provider_label.split("(")[0].strip())
 
     # Cost and notes
     st.markdown(f"**Cost**: {prov['cost']}")
@@ -497,7 +497,7 @@ if wizard_path == "cloud":
                     st.markdown("Check your API key and internet connection.")
 
 # ─── Provider Comparison ──────────────────────────────────────────────────────
-rune_divider("PROVIDER COMPARISON")
+section_divider("PROVIDER COMPARISON")
 
 with st.expander("All Providers At a Glance"):
     st.markdown("""
@@ -536,7 +536,7 @@ with st.expander("All Providers At a Glance"):
                 st.rerun()
 
 # ─── Quick Recommendation ─────────────────────────────────────────────────────
-rune_divider("RECOMMENDATION")
+section_divider("RECOMMENDATION")
 hw_check = _detect_hardware()
 if hw_check["ram_gb"] >= 16 or hw_check["gpu_vram_gb"] >= 6:
     st.markdown(

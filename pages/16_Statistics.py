@@ -16,14 +16,14 @@ from core.database import (
     compute_gpa, credits_earned, tx,
 )
 from core import db_activity
-from ui.theme import inject_theme, gf_header, rune_divider, stat_card, help_button
+from ui.theme import inject_theme, gf_header, section_divider, stat_card, help_button
 
 inject_theme()
 gf_header("Statistics", "Your academic analytics dashboard.")
 help_button("statistics-dashboard")
 
 # ─── Summary Cards ────────────────────────────────────────────────────────────
-rune_divider("Overview")
+section_divider("Overview")
 
 summary = db_activity.get_activity_summary(tx)
 gpa, graded = compute_gpa()
@@ -53,7 +53,7 @@ with c8:
     stat_card("Activities", str(summary["total_events"]), colour="#00d4ff")
 
 # ─── Daily Activity Chart ────────────────────────────────────────────────────
-rune_divider("Daily Activity (Last 30 Days)")
+section_divider("Daily Activity (Last 30 Days)")
 
 daily = db_activity.get_daily_counts(tx, days=30)
 if daily:
@@ -65,7 +65,7 @@ else:
     st.caption("No activity data yet. Start learning to see your stats!")
 
 # ─── Activity Breakdown ──────────────────────────────────────────────────────
-rune_divider("Activity Breakdown")
+section_divider("Activity Breakdown")
 
 by_type = summary.get("by_type", {})
 if by_type:
@@ -76,7 +76,7 @@ else:
     st.caption("No activities recorded yet.")
 
 # ─── Grade Distribution ──────────────────────────────────────────────────────
-rune_divider("Grade Distribution")
+section_divider("Grade Distribution")
 
 if submitted:
     scores = [a["score"] for a in submitted if a.get("score") is not None]

@@ -12,14 +12,14 @@ sys.path.insert(0, str(ROOT))
 
 from core.database import get_all_courses, credits_earned, compute_gpa, tx
 from core import db_programs
-from ui.theme import inject_theme, gf_header, rune_divider, stat_card, help_button
+from ui.theme import inject_theme, gf_header, section_divider, stat_card, help_button
 
 inject_theme()
 gf_header("Programs & Curriculum", "Degree programs and academic pathways.")
 help_button("programs-overview")
 
 # ─── Current Academic Status ──────────────────────────────────────────────────
-rune_divider("Your Academic Status")
+section_divider("Your Academic Status")
 
 gpa, graded_count = compute_gpa()
 creds = credits_earned()
@@ -33,7 +33,7 @@ with c3:
     stat_card("Courses", str(len(get_all_courses())), colour="#00d4ff")
 
 # ─── Available Programs ───────────────────────────────────────────────────────
-rune_divider("Available Programs")
+section_divider("Available Programs")
 
 programs = db_programs.get_all_programs(tx)
 enrollments = db_programs.get_enrollments(tx)
@@ -43,7 +43,7 @@ if not programs:
     st.info("No programs available yet. Programs are seeded on startup.")
 else:
     for prog in programs:
-        with st.expander(f"{'📜' if prog['level'] == 'Certificate' else '🎓'} {prog['name']} — {prog['level']} ({prog['total_credits']} credits)"):
+        with st.expander(f"{'[C]' if prog['level'] == 'Certificate' else '[D]'} {prog['name']} --- {prog['level']} ({prog['total_credits']} credits)"):
             st.markdown(f"**School:** {prog.get('school', 'N/A')}")
             st.markdown(f"**Description:** {prog.get('description', '')}")
             st.markdown(f"**Required Credits:** {prog['total_credits']}")
@@ -53,7 +53,7 @@ else:
             st.progress(progress, text=f"{creds}/{prog['total_credits']} credits ({progress*100:.0f}%)")
 
             if prog["id"] in enrolled_ids:
-                st.success("✅ Enrolled")
+                st.success("[OK] Enrolled")
             else:
                 if st.button(f"Enroll in {prog['name']}", key=f"enroll_{prog['id']}"):
                     db_programs.enroll(prog["id"], tx)
@@ -61,11 +61,11 @@ else:
                     st.rerun()
 
 # ─── Your Enrollments ────────────────────────────────────────────────────────
-rune_divider("Your Enrollments")
+section_divider("Your Enrollments")
 
 if enrollments:
     for e in enrollments:
-        status_icon = "✅" if e["status"] == "completed" else "📖"
+        status_icon = "[OK]" if e["status"] == "completed" else "[..]"
         st.markdown(f"- {status_icon} **{e['program_name']}** ({e['program_level']}) — Status: {e['status']}")
 else:
     st.caption("Not enrolled in any programs yet. Browse and enroll above!")

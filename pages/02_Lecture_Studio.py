@@ -16,8 +16,9 @@ from core.database import (
     get_all_courses, get_modules, get_lectures, get_lecture,
     get_progress, set_progress, save_assignment, submit_assignment,
     get_assignments, get_setting, unlock_achievement, add_xp,
+    get_assignment_ai_policy, start_assignment, flag_prove_it,
 )
-from ui.theme import inject_theme, gf_header, rune_divider, progress_badge, play_sfx, stat_card, help_button
+from ui.theme import inject_theme, gf_header, section_divider, progress_badge, play_sfx, stat_card, help_button
 
 inject_theme()
 gf_header("Lecture Studio", "Enter the chamber of knowledge.")
@@ -57,7 +58,7 @@ lec_data.setdefault("lecture_id", lec_row["id"])
 lec_data.setdefault("title", lec_row["title"])
 lec_data.setdefault("module_title", module["title"])
 
-rune_divider("Details")
+section_divider("Details")
 d1, d2, d3 = st.columns(3)
 with d1:
     stat_card("Duration", f"{lec_row['duration_min']} min", colour="#00d4ff")
@@ -83,7 +84,7 @@ with st.expander("Learning Objectives & Core Terms", expanded=False):
         unsafe_allow_html=True,
     )
 
-rune_divider("Video Playback")
+section_divider("Video Playback")
 help_button("playing-lectures")
 
 # Check if video already rendered
@@ -102,7 +103,7 @@ if full_video.exists():
 else:
     st.info("Video not yet rendered. Use the controls below.")
 
-rune_divider("Render Controls")
+section_divider("Render Controls")
 help_button("rendering-lecture")
 r1, r2, r3 = st.columns(3)
 
@@ -139,11 +140,18 @@ with r3:
         if st.button("Send to External Engine", use_container_width=True):
             st.info("External engine API integration — configure in Settings.")
 
-rune_divider("Assignments")
+section_divider("Assignments")
 help_button("assignment-submission")
 assignments = [a for a in get_assignments(course["id"]) if a.get("lecture_id") == lec_row["id"]]
 
 deadlines_on = get_setting("deadlines_enabled", "0") == "1"
+
+_AI_BADGE = {
+    "unrestricted": "<span style='color:#40dc80;font-weight:bold;'>[OPEN]</span> AI use allowed freely",
+    "assisted": "<span style='color:#ffd700;font-weight:bold;'>[AIDED]</span> AI for specific tasks only",
+    "supervised": "<span style='color:#ff8c00;font-weight:bold;'>[WATCH]</span> AI under constraints",
+    "prohibited": "<span style='color:#e04040;font-weight:bold;'>[NONE]</span> No AI assistance",
+}
 
 if not assignments:
     st.info("No assignments for this lecture yet. Ask the Professor AI to generate some.")
@@ -152,7 +160,17 @@ else:
         now = time.time()
         due = asn.get("due_at")
         submitted = asn.get("submitted_at")
+        policy = get_assignment_ai_policy(asn)
+        level = policy.get("level", "assisted")
+        badge_html = _AI_BADGE.get(level, _AI_BADGE["assisted"])
+
         with st.expander(f"  {asn['type'].upper()}  {asn['title']}", expanded=False):
+            # AI policy badge
+            st.markdown(
+                f"<div style='font-family:monospace;font-size:0.85rem;margin-bottom:8px;'>"
+                f"AI Policy: {badge_html}</div>",
+                unsafe_allow_html=True,
+            )
             st.write(asn.get("description", ""))
             if deadlines_on and due:
                 remaining = due - now
@@ -163,9 +181,29 @@ else:
                 max_s = asn.get("max_score", 100)
                 from core.database import score_to_grade
                 grade, _ = score_to_grade((score / max_s) * 100 if max_s else 0)
-                st.success(f"Submitted — Score: {score}/{max_s}  Grade: {grade}")
+                st.success(f"Submitted -- Score: {score}/{max_s}  Grade: {grade}")
+                dur = asn.get("duration_s") or 0
+                if dur > 0:
+                    st.caption(f"Time spent: {dur / 60:.0f} min")
                 st.write(asn.get("feedback", ""))
+
+                # Prove-it flagging for verification assignments
+                flag = flag_prove_it(asn["id"])
+                if flag:
+                    st.warning(flag["message"])
+
+                # Prove-it challenge prompt for AI-assisted submissions
+                if level in ("assisted", "supervised") and asn["type"] != "verification":
+                    st.markdown("---")
+                    st.markdown(
+                        "<div style='font-family:monospace;color:#ff8c00;'>"
+                        "A prove-it verification may be required to confirm mastery. "
+                        "Ask Professor AI to generate one.</div>",
+                        unsafe_allow_html=True,
+                    )
             else:
+                # Start timer on first view
+                start_assignment(asn["id"])
                 with st.form(key=f"submit_{asn['id']}"):
                     answer = st.text_area("Your answer / submission")
                     submitted_score = st.slider("Self-score (if applicable)", 0, 100, 75)

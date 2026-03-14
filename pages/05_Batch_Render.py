@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from core.database import get_all_courses, get_modules, get_lectures, get_setting, save_setting
-from ui.theme import inject_theme, gf_header, rune_divider, play_sfx, help_button
+from ui.theme import inject_theme, gf_header, section_divider, play_sfx, help_button
 
 inject_theme()
 gf_header("Batch Render", "Queue lectures for rendering with visual effects applied automatically.")
@@ -50,7 +50,7 @@ if not all_lectures:
     st.stop()
 
 # ─── Filter & Sort Controls ──────────────────────────────────────────────────
-rune_divider("Filter & Sort")
+section_divider("Filter & Sort")
 f1, f2, f3 = st.columns(3)
 with f1:
     course_options = ["All Courses"] + sorted(set(course_map.values()))
@@ -75,7 +75,7 @@ if sort_by == "Newest First":
 elif sort_by == "Oldest First":
     filtered.sort(key=lambda x: x.get("created_at", ""))
 
-rune_divider("Select Lectures to Render")
+section_divider("Select Lectures to Render")
 st.markdown(
     f"<span style='color:#a0a0c0;font-family:monospace;font-size:0.82rem;'>"
     f"{len(filtered)} lectures match filters ({len(all_lectures)} total). "
@@ -92,7 +92,7 @@ for item in filtered:
     if checked:
         selected_ids.add(lec["id"])
 
-rune_divider("Render Queue")
+section_divider("Render Queue")
 help_button("batch-render")
 render_provider = get_setting("render_provider", "local")
 st.markdown(f"<span style='font-family:monospace;color:#606080;font-size:0.8rem;'>Render backend: {render_provider}</span>", unsafe_allow_html=True)
@@ -169,7 +169,7 @@ if st.session_state["render_state"] == "done":
         st.rerun()
 
 # ─── Visual Effects (applied automatically) ──────────────────────────────────
-rune_divider("Visual Effects (Auto-Applied)")
+section_divider("Visual Effects (Auto-Applied)")
 st.markdown(
     "<span style='color:#a0a0c0;font-family:monospace;font-size:0.82rem;'>"
     "These effects are applied automatically during rendering. No extra export step needed.</span>",
@@ -198,7 +198,7 @@ vfx_config = {
 save_setting("vfx_config", json.dumps(vfx_config))
 
 # ─── Already rendered files ───────────────────────────────────────────────────
-rune_divider("Rendered Files")
+section_divider("Rendered Files")
 video_files = sorted(EXPORT_DIR.glob("*.mp4"))
 if video_files:
     for vf in video_files[-30:]:

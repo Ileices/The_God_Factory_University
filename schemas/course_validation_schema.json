@@ -18,7 +18,7 @@
       "enum": [
         "K-5", "6-8", "9-12",
         "Freshman", "Sophomore", "Junior", "Senior",
-        "Masters", "Doctoral"
+        "Masters", "Doctoral", "Postdoctoral"
       ],
       "description": "Granular grade/college level for the course"
     },
@@ -26,6 +26,49 @@
       "type": "array",
       "items": { "type": "string" },
       "description": "Array of course_ids that should be completed before this course"
+    },
+    "parent_course_id": {
+      "type": "string",
+      "description": "ID of parent course for recursive sub-course trees. NULL or absent for root courses."
+    },
+    "depth_level": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Depth in the course tree. 0 = root, 1+ = sub-course."
+    },
+    "depth_target": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Expected number of decomposition levels before full credit is earned."
+    },
+    "pacing": {
+      "type": "string",
+      "enum": ["fast", "standard", "slow"],
+      "description": "Delivery speed: fast (multi-concept), standard (1 per lecture), slow (multi-lecture per concept)."
+    },
+    "jargon": {
+      "type": "object",
+      "description": "Domain terminology for this course — key terms, definitions, etymology, usage.",
+      "properties": {
+        "terms": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["term", "definition"],
+            "properties": {
+              "term": { "type": "string" },
+              "definition": { "type": "string" },
+              "etymology": { "type": "string" },
+              "usage_example": { "type": "string" },
+              "related_terms": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
+      }
+    },
+    "is_jargon_course": {
+      "type": "boolean",
+      "description": "True if this is a terminology-focused companion course."
     },
     "recommended_textbooks": {
       "type": "array",
@@ -116,7 +159,7 @@
           "enum": [
             "K-5", "6-8", "9-12",
             "Freshman", "Sophomore", "Junior", "Senior",
-            "Masters", "Doctoral"
+            "Masters", "Doctoral", "Postdoctoral"
           ]
         },
         "max_score": { "type": "integer", "minimum": 1, "default": 100 },
@@ -151,6 +194,32 @@
               "choices": { "type": "array", "items": { "type": "string" } },
               "correct_answer": { "type": "string" },
               "points": { "type": "integer", "minimum": 1 }
+            }
+          }
+        },
+        "ai_policy": {
+          "type": "object",
+          "description": "AI usage policy for this assignment.",
+          "properties": {
+            "level": {
+              "type": "string",
+              "enum": ["unrestricted", "assisted", "supervised", "prohibited"],
+              "description": "Overall AI policy level."
+            },
+            "allowed_uses": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Specific AI uses permitted (e.g., 'grammar checking', 'chart generation')."
+            },
+            "prohibited_uses": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Specific AI uses forbidden (e.g., 'code generation', 'answer completion')."
+            },
+            "verification_type": {
+              "type": "string",
+              "enum": ["none", "original_example", "oral_explanation", "peer_review"],
+              "description": "How student must prove understanding after AI-assisted work."
             }
           }
         }

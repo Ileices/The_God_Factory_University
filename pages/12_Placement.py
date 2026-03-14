@@ -16,14 +16,14 @@ from core.database import (
     get_setting, set_setting, add_xp, tx,
 )
 from core import placement
-from ui.theme import inject_theme, gf_header, rune_divider, stat_card, help_button
+from ui.theme import inject_theme, gf_header, section_divider, stat_card, help_button
 
 inject_theme()
 gf_header("Placement Testing", "Discover your starting level in any subject.")
 help_button("placement-testing")
 
 # ─── Subject Selection ────────────────────────────────────────────────────────
-rune_divider("Choose Subject")
+section_divider("Choose Subject")
 
 domains = get_subject_domains()
 domain_names = [d["name"] for d in domains]
@@ -53,7 +53,7 @@ if "pt_test_id" not in st.session_state:
     st.session_state.pt_finished = False
 
 # ─── Start / Resume Test ─────────────────────────────────────────────────────
-rune_divider("Placement Exam")
+section_divider("Placement Exam")
 
 NUM_QUESTIONS = 10
 
@@ -108,7 +108,7 @@ elif not st.session_state.pt_finished:
 else:
     # Show results
     result = st.session_state.get("pt_result", {})
-    rune_divider("Results")
+    section_divider("Results")
 
     c1, c2, c3 = st.columns(3)
     with c1:
@@ -126,7 +126,7 @@ else:
         st.rerun()
 
 # ─── Past Tests ───────────────────────────────────────────────────────────────
-rune_divider("Test History")
+section_divider("Test History")
 past = placement.get_all_tests(tx)
 if past:
     for t in past[:10]:

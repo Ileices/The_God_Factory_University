@@ -12,7 +12,7 @@ sys.path.insert(0, str(ROOT))
 
 from core.database import get_all_achievements, get_xp_history, get_total_xp, get_level
 from ui.theme import (
-    inject_theme, gf_header, rune_divider,
+    inject_theme, gf_header, section_divider,
     achievement_card, xp_bar, level_badge, stat_card, help_button,
 )
 
@@ -34,7 +34,7 @@ with lb3:
 xp_bar(xp_in_level, xp_for_next)
 
 # ─── Level progression ────────────────────────────────────────────────────────
-rune_divider("Level Progression")
+section_divider("Level Progression")
 help_button("level-system")
 
 LEVELS = [
@@ -42,7 +42,7 @@ LEVELS = [
     (100,   "Initiate",    "#40dc80"),
     (300,   "Scholar",     "#00d4ff"),
     (700,   "Adept",       "#8080ff"),
-    (1500,  "Sorcerer",    "#c060ff"),
+    (1500,  "Expert",      "#c060ff"),
     (3000,  "Sage",        "#ffd700"),
     (6000,  "Transcendent",      "#ff8040"),
     (10000, "Grandmaster", "#ff4040"),
@@ -64,7 +64,7 @@ for i, (xp_req, name, colour) in enumerate(LEVELS):
     )
 
 # ─── Achievement badges ───────────────────────────────────────────────────────
-rune_divider("Achievement Badges")
+section_divider("Achievement Badges")
 help_button("achievement-system")
 
 ALL_BADGES = [
@@ -102,7 +102,7 @@ for i, badge in enumerate(filtered):
         achievement_card(badge["title"], badge["desc"], badge["category"], unlocked)
 
 # ─── XP event history ─────────────────────────────────────────────────────────
-rune_divider("XP History")
+section_divider("XP History")
 history = get_xp_history(50)
 if history:
     for ev in history:

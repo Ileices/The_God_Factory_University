@@ -25,9 +25,9 @@ Cross-reference: [check2.md](check2.md) covers the engineering contract and inte
 - [x] Transcript CSV and JSON download implemented in Grades page
 - [ ] Verify transcript export correctness against real assignment submissions
 - [ ] Add term/semester records and transcript term grouping
-- [ ] Add assignment weighting per course/module
-- [ ] Add late policy behavior when deadlines mode is enabled
-- [ ] Add enrollment date tracking and time-to-degree calculation
+- [x] Add assignment weighting per course/module
+- [x] Add late policy behavior when deadlines mode is enabled
+- [x] Add enrollment date tracking and time-to-degree calculation
 - [ ] Add assignment generation and other class material to schema capabilities
 
 ## 3. Curriculum and Library Experience
@@ -91,9 +91,9 @@ Cross-reference: [check2.md](check2.md) covers the engineering contract and inte
 - [x] `achievement_card()` supports both dict and positional args
 - [x] Procedural ASCII art headers (no external assets, no emojis)
 - [x] Add deterministic unlock rules audit (every achievement has a trigger)
-- [ ] Add level-up celebration flow for first-time level transitions
-- [ ] Add weekly quest loop (optional toggle)
-- [ ] Add XP decay prevention (activity streak bonus)
+- [x] Add level-up celebration flow for first-time level transitions
+- [x] Add weekly quest loop (optional toggle)
+- [x] Add XP decay prevention (activity streak bonus)
 
 ## 8. Setup, Launch, and Ops
 - [x] `setup.bat` exists (creates venv, installs deps, inits DB)

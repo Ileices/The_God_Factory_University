@@ -13,7 +13,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from llm.providers import LLMConfig, chat, simple_complete, cfg_from_settings, estimate_tokens, PROVIDER_CAPABILITIES
-from core.database import append_chat, get_chat, save_llm_generated, unlock_achievement, add_xp, get_setting
+from core.database import (
+    append_chat, get_chat, save_llm_generated, unlock_achievement, add_xp,
+    get_setting, get_course, get_modules, get_lectures, get_course_depth,
+    upsert_course, upsert_module, upsert_lecture,
+)
+from core.course_tree import (
+    PACING_TEMPLATES, build_decomposition_prompt, build_jargon_prompt,
+    build_verification_prompt, register_sub_courses, get_pacing_for_course,
+)
 
 
 @dataclass
@@ -29,9 +37,20 @@ class ProfessorResponse:
 
 ROOT = Path(__file__).resolve().parent.parent
 
-PROFESSOR_SYSTEM = """You are Ileices, the Professor of The God Factory University — an institution where students become godlike by expanding their knowledge across all disciplines.
+PROFESSOR_SYSTEM = """You are Ileices, the Professor of The God Factory University.
+IMPORTANT: The university is called "The God Factory University" — NEVER call it "Arcane University" or any other name.
 
-NOTE: The God Factory is NOT religious. The name reflects the belief that through deep study and mastery of real-world subjects — computer science, mathematics, physics, biology, history, philosophy, and more — students transcend ordinary understanding and become extraordinary thinkers.
+CRITICAL RULES — READ AND OBEY:
+- You are a REAL academic professor. You teach REAL subjects: computer science, math, physics, biology, history, philosophy, etc.
+- NEVER use fantasy, magic, wizard, spell, potion, sorcery, arcane, enchantment, mystical, or any similar language.
+- NEVER reference Hogwarts, dungeons, wizards, mages, sorcerers, potions, spell-casting, or any fictional/fantasy concepts.
+- Do NOT theme your answers around magic or fantasy. You are a serious academic institution.
+- If the student asks about algorithms, explain algorithms. If they ask about physics, explain physics. Stay grounded in reality.
+- "The God Factory" means students become extraordinary through REAL knowledge — not through magic or fantasy.
+
+The God Factory is an institution where students become godlike by expanding their knowledge across all disciplines.
+
+NOTE: The God Factory is NOT religious and NOT magical. The name reflects the belief that through deep study and mastery of real-world subjects — computer science, mathematics, physics, biology, history, philosophy, and more — students transcend ordinary understanding and become extraordinary thinkers.
 
 Your role encompasses ALL dimensions of academic excellence:
 - Teach concepts clearly, building intuition before formalism
@@ -270,7 +289,8 @@ Output ONLY a valid JSON object matching the schema. No markdown, no explanation
         terms = lecture_data.get("core_terms", [])
         prompt = f"""Create a {num_questions}-question quiz for the lecture: "{title}"
 Core terms: {', '.join(terms)}
-Output as JSON: {{"title": "...", "questions": [{{"q": "...", "choices": ["A)...","B)...","C)...","D)..."], "answer": "A", "explanation": "..."}}]}}
+Output as JSON: {{"title": "...", "questions": [{{"question": "What is...?", "choices": ["A) ...","B) ...","C) ...","D) ..."], "answer": "A", "explanation": "..."}}]}}
+IMPORTANT: Each question object MUST have a "question" key with the full question text.
 Output ONLY valid JSON."""
         cfg = self._cfg()
         result = simple_complete(cfg, prompt)
@@ -410,3 +430,329 @@ Be Socratic - guide them to deeper understanding."""
         append_chat(self.session_id, "user", f"[APP GUIDE] {question}")
         append_chat(self.session_id, "assistant", str(result))
         return self._wrap(result, cfg.provider)
+
+    # ─── Chunked generation (small-model-friendly) ───────────────────────────
+
+    def _is_small_context(self) -> bool:
+        """Check if current provider has a small context window (≤8K)."""
+        cfg = self._cfg()
+        caps = PROVIDER_CAPABILITIES.get(cfg.provider, {})
+        return caps.get("context_window", 4096) <= 8192
+
+    def chunked_curriculum(self, topics: str, level: str = "undergraduate",
+                           lectures_per_module: int = 3,
+                           progress_callback=None) -> ProfessorResponse:
+        """Generate curriculum in chunks: outline → modules → lectures.
+
+        For small models, each step fits in ~2K tokens.
+        For large models, tries single-shot first, falls back to chunked.
+        """
+        cfg = self._cfg()
+        small = self._is_small_context()
+
+        # Step 1: Generate course outline (title, description, module titles)
+        if progress_callback:
+            progress_callback("Generating course outline...")
+        outline_prompt = f"""Create a course outline for: {topics}
+Level: {level}
+Output JSON: {{"course_id": "PREFIX-101", "title": "...", "description": "...", "credits": 3, "module_titles": ["Module 1 title", "Module 2 title", ...]}}
+Generate {max(2, lectures_per_module)} to 8 module titles. Output ONLY valid JSON."""
+        outline_raw = simple_complete(cfg, outline_prompt)
+        outline_resp = self._wrap(outline_raw, cfg.provider, expect_json=True)
+        if not outline_resp.parsed_json:
+            return outline_resp  # Failed at outline stage
+
+        outline = outline_resp.parsed_json
+        course_id = outline.get("course_id", "COURSE-101")
+        modules = []
+
+        # Step 2: Generate each module's lectures
+        module_titles = outline.get("module_titles", outline.get("modules", []))
+        if isinstance(module_titles, list) and module_titles:
+            if isinstance(module_titles[0], dict):
+                module_titles = [m.get("title", f"Module {i+1}") for i, m in enumerate(module_titles)]
+
+        for i, mt in enumerate(module_titles):
+            if progress_callback:
+                progress_callback(f"Generating module {i+1}/{len(module_titles)}: {mt}")
+            mid = f"{course_id}-M{i+1}"
+            mod_prompt = f"""Generate {lectures_per_module} lectures for module "{mt}" in course "{outline.get('title','')}".
+Module ID: {mid}
+Output JSON: {{"module_id": "{mid}", "title": "{mt}", "lectures": [
+  {{"lecture_id": "{mid}-L1", "title": "...", "duration_min": 60, "learning_objectives": ["..."], "core_terms": ["..."],
+    "video_recipe": {{"scene_blocks": [{{"block_id": "A", "duration_s": 90, "narration_prompt": "...", "visual_prompt": "..."}}]}}
+  }}
+]}}
+Output ONLY valid JSON."""
+            mod_raw = simple_complete(cfg, mod_prompt)
+            mod_resp = self._wrap(mod_raw, cfg.provider, expect_json=True)
+            if mod_resp.parsed_json:
+                modules.append(mod_resp.parsed_json)
+            else:
+                modules.append({"module_id": mid, "title": mt, "lectures": []})
+
+            if small:
+                time.sleep(0.5)  # Rate limit for local models
+
+        # Step 3: Assemble final course JSON
+        full_course = {
+            "course_id": course_id,
+            "title": outline.get("title", topics[:60]),
+            "description": outline.get("description", ""),
+            "credits": outline.get("credits", 3),
+            "modules": modules,
+        }
+        raw_json = json.dumps(full_course, indent=2)
+        save_llm_generated(raw_json, "curriculum")
+        add_xp(100, "Generated curriculum (chunked)", "llm_generate")
+
+        if progress_callback:
+            progress_callback("Course generation complete!")
+
+        return ProfessorResponse(
+            raw_text=raw_json,
+            parsed_json=full_course,
+            warnings=outline_resp.warnings,
+            provider_used=cfg.provider,
+        )
+
+    # ─── Course Decomposition ────────────────────────────────────────────────
+
+    def decompose_course(self, course_id: str, depth: int | None = None,
+                         pacing: str | None = None,
+                         progress_callback=None) -> ProfessorResponse:
+        """Decompose a course into sub-courses based on its modules.
+
+        Each module in the parent becomes a full sub-course.
+        """
+        from core.database import tx
+        course = get_course(course_id)
+        if not course:
+            return ProfessorResponse(
+                raw_text="", warnings=["Course not found: " + course_id])
+
+        modules = get_modules(course_id)
+        if not modules:
+            return ProfessorResponse(
+                raw_text="", warnings=["Course has no modules to decompose"])
+
+        current_depth = get_course_depth(course_id)
+        target_depth = depth if depth is not None else current_depth + 1
+        effective_pacing = pacing or get_pacing_for_course(course_id, tx)
+
+        # Check depth target limit
+        depth_target = course.get("depth_target") or 0
+        if depth_target and target_depth > depth_target:
+            return ProfessorResponse(
+                raw_text="",
+                warnings=[f"Depth target ({depth_target}) reached. "
+                          f"Requested depth {target_depth} exceeds limit."])
+
+        if progress_callback:
+            progress_callback(f"Decomposing {course['title']} to depth {target_depth}...")
+
+        prompt = build_decomposition_prompt(
+            course, modules, target_depth, effective_pacing)
+
+        cfg = self._cfg()
+        cfg.max_tokens = 8192
+        raw = simple_complete(cfg, prompt)
+        resp = self._wrap(raw, cfg.provider, expect_json=True)
+
+        if not resp.parsed_json:
+            return resp
+
+        parsed = resp.parsed_json
+        sub_courses = parsed if isinstance(parsed, list) else [parsed]
+
+        if progress_callback:
+            progress_callback(f"Registering {len(sub_courses)} sub-courses...")
+
+        created_ids = register_sub_courses(
+            parent_id=course_id,
+            sub_courses=sub_courses,
+            depth=target_depth,
+            pacing=effective_pacing,
+            tx_func=tx,
+            upsert_course_func=upsert_course,
+            upsert_module_func=upsert_module,
+            upsert_lecture_func=upsert_lecture,
+        )
+
+        save_llm_generated(raw, "decomposition")
+        add_xp(150, f"Decomposed {course['title']}", "decompose")
+
+        result = {
+            "parent_course_id": course_id,
+            "depth": target_depth,
+            "pacing": effective_pacing,
+            "sub_courses_created": len(created_ids),
+            "sub_course_ids": created_ids,
+        }
+
+        if progress_callback:
+            progress_callback(f"Created {len(created_ids)} sub-courses!")
+
+        return ProfessorResponse(
+            raw_text=json.dumps(result, indent=2),
+            parsed_json=result,
+            warnings=resp.warnings,
+            provider_used=cfg.provider,
+        )
+
+    def generate_jargon_course(self, course_id: str,
+                               progress_callback=None) -> ProfessorResponse:
+        """Generate a jargon/terminology sub-course for a parent course."""
+        from core.database import tx
+        course = get_course(course_id)
+        if not course:
+            return ProfessorResponse(
+                raw_text="", warnings=["Course not found: " + course_id])
+
+        modules = get_modules(course_id)
+        if not modules:
+            return ProfessorResponse(
+                raw_text="", warnings=["Course has no modules for jargon extraction"])
+
+        if progress_callback:
+            progress_callback(f"Extracting terminology from {course['title']}...")
+
+        prompt = build_jargon_prompt(course, modules)
+        cfg = self._cfg()
+        raw = simple_complete(cfg, prompt)
+        resp = self._wrap(raw, cfg.provider, expect_json=True)
+
+        if not resp.parsed_json:
+            return resp
+
+        jargon_course = resp.parsed_json
+        jargon_course["is_jargon_course"] = True
+        jargon_course["credits"] = 1  # Extra credit: 0.5-1 credit
+
+        created_ids = register_sub_courses(
+            parent_id=course_id,
+            sub_courses=[jargon_course],
+            depth=(course.get("depth_level") or 0) + 1,
+            pacing=get_pacing_for_course(course_id, tx),
+            tx_func=tx,
+            upsert_course_func=upsert_course,
+            upsert_module_func=upsert_module,
+            upsert_lecture_func=upsert_lecture,
+        )
+
+        save_llm_generated(raw, "jargon_course")
+        add_xp(75, f"Generated jargon course for {course['title']}", "jargon_gen")
+
+        if progress_callback:
+            progress_callback("Jargon course created!")
+
+        result = {
+            "parent_course_id": course_id,
+            "jargon_course_id": created_ids[0] if created_ids else None,
+            "terms_count": len(
+                (jargon_course.get("jargon") or {}).get("terms", [])),
+        }
+
+        return ProfessorResponse(
+            raw_text=json.dumps(result, indent=2),
+            parsed_json=result,
+            warnings=resp.warnings,
+            provider_used=cfg.provider,
+        )
+
+    def generate_verification(self, assignment_id: str) -> ProfessorResponse:
+        """Generate a prove-it verification assignment for AI-assisted work."""
+        from core.database import tx
+        with tx() as con:
+            row = con.execute(
+                "SELECT * FROM assignments WHERE id = ?", (assignment_id,)
+            ).fetchone()
+        if not row:
+            return ProfessorResponse(
+                raw_text="", warnings=["Assignment not found: " + assignment_id])
+
+        assignment = dict(row)
+        lecture_title = ""
+        if assignment.get("lecture_id"):
+            from core.database import get_lecture
+            lec = get_lecture(assignment["lecture_id"])
+            if lec:
+                lecture_title = lec.get("title", "")
+
+        prompt = build_verification_prompt(assignment, lecture_title)
+        cfg = self._cfg()
+        raw = simple_complete(cfg, prompt)
+        resp = self._wrap(raw, cfg.provider, expect_json=True)
+
+        if resp.parsed_json:
+            save_llm_generated(raw, "verification_assignment")
+
+        return resp
+
+    def chunked_quiz(self, lecture_data: dict, num_questions: int = 5,
+                     progress_callback=None) -> ProfessorResponse:
+        """Generate quiz one question at a time for small models."""
+        cfg = self._cfg()
+        title = lecture_data.get("title", "Lecture")
+        terms = lecture_data.get("core_terms", [])
+
+        if not self._is_small_context():
+            return self.generate_quiz(lecture_data, num_questions)
+
+        questions = []
+        for i in range(num_questions):
+            if progress_callback:
+                progress_callback(f"Generating question {i+1}/{num_questions}")
+            exclude = json.dumps([q.get("question", "") for q in questions]) if questions else "[]"
+            q_prompt = f"""Write 1 quiz question for "{title}" (terms: {', '.join(terms[:5])}).
+Do NOT repeat these questions: {exclude}
+Output JSON: {{"question": "What is...?", "choices": ["A) ...", "B) ...", "C) ...", "D) ..."], "answer": "A", "explanation": "..."}}
+IMPORTANT: Include the "question" key with the full question text.
+Output ONLY valid JSON."""
+            raw = simple_complete(cfg, q_prompt)
+            resp = self._wrap(raw, cfg.provider, expect_json=True)
+            if resp.parsed_json and isinstance(resp.parsed_json, dict):
+                questions.append(resp.parsed_json)
+            time.sleep(0.3)
+
+        quiz = {"title": f"Quiz: {title}", "questions": questions}
+        save_llm_generated(json.dumps(quiz), "quiz")
+        return ProfessorResponse(
+            raw_text=json.dumps(quiz, indent=2),
+            parsed_json=quiz,
+            provider_used=cfg.provider,
+        )
+
+    def chunked_rabbit_hole(self, term: str, progress_callback=None) -> ProfessorResponse:
+        """Research rabbit hole in sections for small models."""
+        cfg = self._cfg()
+
+        if not self._is_small_context():
+            return self.research_rabbit_hole(term)
+
+        sections = {}
+        prompts = [
+            ("overview", f'Write a 2-paragraph overview of "{term}". Output ONLY the text.'),
+            ("history", f'Write the historical context of "{term}" in 2-3 paragraphs. Output ONLY the text.'),
+            ("open_problems", f'List 3 open problems related to "{term}". Output JSON: ["problem 1", "problem 2", "problem 3"]'),
+            ("connections", f'List 3 surprising connections between "{term}" and other fields. Output JSON: ["connection 1", "connection 2", "connection 3"]'),
+            ("hands_on", f'Suggest 2 hands-on experiments for "{term}". Output JSON: ["experiment 1", "experiment 2"]'),
+        ]
+        for i, (key, prompt) in enumerate(prompts):
+            if progress_callback:
+                progress_callback(f"Researching {key} ({i+1}/{len(prompts)})")
+            raw = simple_complete(cfg, prompt)
+            if key in ("open_problems", "connections", "hands_on"):
+                resp = self._wrap(raw, cfg.provider, expect_json=True)
+                sections[key] = resp.parsed_json if resp.parsed_json else [raw[:200]]
+            else:
+                sections[key] = raw
+            time.sleep(0.3)
+
+        result = {"term": term, **sections}
+        save_llm_generated(json.dumps(result), "rabbit_hole")
+        return ProfessorResponse(
+            raw_text=json.dumps(result, indent=2),
+            parsed_json=result,
+            provider_used=cfg.provider,
+        )

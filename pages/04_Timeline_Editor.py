@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from core.database import get_all_courses, get_modules, get_lectures
-from ui.theme import inject_theme, gf_header, rune_divider, play_sfx, help_button
+from ui.theme import inject_theme, gf_header, section_divider, play_sfx, help_button
 
 inject_theme()
 gf_header("Timeline Editor", "Reorder and tune scenes before rendering.")
@@ -55,7 +55,7 @@ if not scenes:
     st.info("This lecture has no scene blocks defined.")
     st.stop()
 
-rune_divider("Scene Blocks")
+section_divider("Scene Blocks")
 help_button("reordering-scenes")
 st.markdown(
     "<span style='color:#a0a0c0;font-family:monospace;font-size:0.82rem;'>"
@@ -104,7 +104,7 @@ for i, scene in enumerate(editable):
                     st.session_state[state_key] = editable
                     st.rerun()
 
-rune_divider("Render with Edits")
+section_divider("Render with Edits")
 help_button("exporting-timeline")
 rd1, rd2 = st.columns(2)
 with rd1:

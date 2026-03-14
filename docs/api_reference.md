@@ -284,7 +284,7 @@ Dark-academic CSS theme and UI widgets.
 | `sanitize_llm_output` | `text` | `str` | Strip dangerous HTML/JS from LLM text |
 | `inject_theme` | | `None` | Inject CSS into Streamlit page |
 | `gf_header` | `title, subtitle=""` | `None` | ASCII-box header |
-| `rune_divider` | `label=""` | `None` | Styled horizontal divider |
+| `section_divider` | `label=""` | `None` | Styled horizontal divider |
 | `stat_card` | `label, value, delta="", colour="#00d4ff"` | `None` | Coloured metric card |
 | `xp_bar` | `current, maximum, label="XP"` | `None` | ASCII XP progress bar |
 | `level_badge` | `level_idx, title` | `None` | Styled level badge |
