@@ -14,10 +14,10 @@ sys.path.insert(0, str(ROOT))
 
 from core.database import add_xp, tx
 from core import test_prep
-from ui.theme import inject_theme, arcane_header, rune_divider, stat_card, help_button
+from ui.theme import inject_theme, gf_header, rune_divider, stat_card, help_button
 
 inject_theme()
-arcane_header("Test Prep", "Practice standardized tests with adaptive scoring.")
+gf_header("Test Prep", "Practice standardized tests with adaptive scoring.")
 help_button("test-prep")
 
 # ─── Test Selection ───────────────────────────────────────────────────────────

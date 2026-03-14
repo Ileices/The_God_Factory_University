@@ -18,10 +18,10 @@ from core.database import (
     get_xp, get_level, count_completed, compute_gpa,
     credits_earned, get_assignments,
 )
-from ui.theme import inject_theme, arcane_header, rune_divider, help_button
+from ui.theme import inject_theme, gf_header, rune_divider, help_button
 
 inject_theme()
-arcane_header("Diagnostics", "Under the hood of the arcane machinery.")
+gf_header("Diagnostics", "Under the hood of the knowledge machinery.")
 help_button("diagnostics-page")
 
 
@@ -237,7 +237,7 @@ with st.expander("Compile check for all pages and modules"):
 
 # ─── Recent Error Log ───────────────────────────────────────────────────────
 rune_divider("Recent Errors")
-log_file = ROOT / "logs" / "arcane.log"
+log_file = ROOT / "logs" / "god_factory.log"
 if log_file.exists():
     import json as _json
     with st.expander("View recent error log entries"):

@@ -24,7 +24,7 @@ SCHEMA:
 [paste the contents of schemas/course_schema.json here]
 ```
 
-### Step 3 — Paste the output into Arcane University
+### Step 3 — Paste the output into The God Factory University
 1. Open the app
 2. Go to **Library** page
 3. Click **Bulk Import**

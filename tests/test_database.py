@@ -13,7 +13,7 @@ import pytest
 # Redirect DB_PATH before importing database module
 _tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
 _tmp.close()
-os.environ["_ARCANE_TEST_DB"] = _tmp.name
+os.environ["_GF_TEST_DB"] = _tmp.name
 
 import core.database as db
 

@@ -1,5 +1,5 @@
 """
-Arcane University — main entry point / Dashboard.
+The God Factory University — main entry point / Dashboard.
 Handles: page config, theme injection, first-run data bootstrap, sidebar.
 """
 
@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
 st.set_page_config(
-    page_title="Arcane University",
+    page_title="The God Factory University",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -24,7 +24,7 @@ from core.database import (
     get_xp, count_completed, get_active_quests,
 )
 from ui.theme import (
-    inject_theme, arcane_header, rune_divider,
+    inject_theme, gf_header, rune_divider,
     xp_bar, level_badge, stat_card, help_button,
 )
 
@@ -46,7 +46,7 @@ if NOTES_FILE.exists() and not get_all_courses():
 with st.sidebar:
     st.markdown(
         "```\n╔══════════════════════╗\n"
-        "║   ARCANE UNIVERSITY   ║\n"
+        "║   THE GOD FACTORY UNIVERSITY   ║\n"
         "╚══════════════════════╝\n```"
     )
     level_idx, level_title, xp_in_level, xp_to_next = get_level()
@@ -76,7 +76,7 @@ if _pending:
     st.success(f"LEVEL UP!  You have ascended to **{_pending}**!")
 
 # ─── Dashboard ───────────────────────────────────────────────────────────────
-arcane_header("Arcane University", "Where knowledge is power and every lesson is a quest.")
+gf_header("The God Factory University", "Where knowledge is power and every lesson is a quest.")
 help_button("dashboard-overview")
 
 courses = get_all_courses()
@@ -117,7 +117,7 @@ st.markdown(
     "4. Timeline Editor─ Reorder scenes and re-render custom videos\n"
     "5. Batch Render   ─ Overnight render entire curriculum\n"
     "6. Grades         ─ GPA, credits, degree eligibility\n"
-    "7. Achievements   ─ Unlock dungeon milestones\n"
+    "7. Achievements   ─ Unlock milestones\n"
     "8. Settings       ─ Voice, LLM provider, video quality\n"
     "─────────────────────────────────────────────────────────────\n"
     "Generate a course: read schemas/SCHEMA_GUIDE.md\n"

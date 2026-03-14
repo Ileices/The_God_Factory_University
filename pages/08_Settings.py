@@ -1,5 +1,6 @@
 """
-Settings — voice, LLM provider, binaural preset, video quality, deadlines, student name.
+Settings — voice, binaural preset, video quality, deadlines, student name.
+LLM configuration lives in pages/11_LLM_Setup.py (single source of truth).
 """
 
 import sys
@@ -11,10 +12,10 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from core.database import get_setting, save_setting
-from ui.theme import inject_theme, arcane_header, rune_divider, play_sfx, help_button
+from ui.theme import inject_theme, gf_header, rune_divider, play_sfx, help_button
 
 inject_theme()
-arcane_header("Settings", "Calibrate your arcane apparatus.")
+gf_header("Settings", "Calibrate your knowledge apparatus.")
 help_button("voice-settings")
 
 # ─── Student identity ──────────────────────────────────────────────────────────
@@ -59,7 +60,7 @@ if st.button("Preview Voice"):
         import tempfile
         import os
         import edge_tts
-        preview_text = "Greetings, scholar. Your journey through the arcane academy begins now."
+        preview_text = "Greetings, scholar. Your journey through the God Factory begins now."
         rate_str = f"+{voice_rate}%" if voice_rate >= 0 else f"{voice_rate}%"
         pitch_str = f"+{voice_pitch}Hz" if voice_pitch >= 0 else f"{voice_pitch}Hz"
         comm = edge_tts.Communicate(preview_text, selected_voice_id, rate=rate_str, pitch=pitch_str)
@@ -122,133 +123,10 @@ if st.button("Save Binaural Setting"):
 
 # ─── LLM Provider ─────────────────────────────────────────────────────────────
 rune_divider("LLM Provider")
-help_button("llm-provider-settings")
-
-PROVIDERS = {
-    "ollama":      {"name": "Ollama (FREE, Local)",             "needs_key": False, "needs_url": False},
-    "lm_studio":   {"name": "LM Studio (FREE, Local)",          "needs_key": False, "needs_url": True},
-    "openai":      {"name": "OpenAI (GPT-4o, Paid)",            "needs_key": True,  "needs_url": False},
-    "github":      {"name": "GitHub Models (FREE tier, PAT)",   "needs_key": True,  "needs_url": False},
-    "anthropic":   {"name": "Anthropic Claude (Paid)",          "needs_key": True,  "needs_url": False},
-    "groq":        {"name": "Groq (FREE tier, Fast)",           "needs_key": True,  "needs_url": False},
-    "mistral":     {"name": "Mistral AI (FREE tier)",           "needs_key": True,  "needs_url": False},
-    "together":    {"name": "Together AI (FREE tier)",          "needs_key": True,  "needs_url": False},
-    "huggingface": {"name": "HuggingFace Inference (FREE)",     "needs_key": True,  "needs_url": False},
-}
-
-provider_labels = {v["name"]: k for k, v in PROVIDERS.items()}
-current_prov = get_setting("llm_provider", "ollama")
-current_prov_label = next((v["name"] for k, v in PROVIDERS.items() if k == current_prov), list(PROVIDERS.values())[0]["name"])
-selected_prov_label = st.selectbox("Provider", list(provider_labels.keys()), index=list(provider_labels.keys()).index(current_prov_label))
-selected_prov = provider_labels[selected_prov_label]
-prov_info = PROVIDERS[selected_prov]
-
-# Paid provider warning
-from llm.providers import is_paid_provider, provider_needs_key
-if is_paid_provider(selected_prov):
-    st.warning("⚠️ This is a **paid provider**. API calls will incur charges on your account.")
-if provider_needs_key(selected_prov) and not get_setting("llm_api_key", "").strip():
-    st.error("🔑 This provider requires an API key. Set it below before using.")
-
-PROVIDER_MODELS = {
-    "ollama":      ["llama3.2:3b", "llama3.1:8b", "llama3.3:70b", "mistral", "phi3:mini", "phi3:medium", "gemma2:9b", "qwen2.5:7b"],
-    "lm_studio":   ["(auto-detected — load model in LM Studio first)"],
-    "openai":      ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"],
-    "github":      ["gpt-4o", "gpt-4o-mini", "meta-llama-3.1-70b-instruct", "mistral-large-2407", "Phi-3.5-MoE-instruct"],
-    "anthropic":   ["claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022", "claude-3-opus-20240229"],
-    "groq":        ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768", "gemma2-9b-it"],
-    "mistral":     ["mistral-large-latest", "mistral-small-latest", "open-mistral-nemo", "codestral-latest"],
-    "together":    ["meta-llama/Llama-3.1-70B-Instruct-Turbo", "mistralai/Mistral-7B-Instruct-v0.3", "Qwen/Qwen2.5-7B-Instruct-Turbo"],
-    "huggingface": ["HuggingFaceH4/zephyr-7b-beta", "mistralai/Mistral-7B-Instruct-v0.3", "microsoft/Phi-3.5-mini-instruct"],
-}
-
-model_options = PROVIDER_MODELS.get(selected_prov, [])
-current_model = get_setting("llm_model", model_options[0] if model_options else "")
-if current_model in model_options:
-    model_idx = model_options.index(current_model)
-else:
-    model_idx = 0
-
-selected_model = st.selectbox("Model", model_options, index=model_idx) if model_options else st.text_input("Model name", value=current_model)
-
-if prov_info["needs_key"]:
-    current_key = get_setting("llm_api_key", "")
-    KEY_DOCS = {
-        "openai":      "Get key at: platform.openai.com/api-keys",
-        "github":      "Get GitHub PAT at: github.com/settings/tokens (Models permission only)",
-        "anthropic":   "Get key at: console.anthropic.com",
-        "groq":        "Get key at: console.groq.com",
-        "mistral":     "Get key at: console.mistral.ai",
-        "together":    "Get key at: api.together.xyz",
-        "huggingface": "Get token at: huggingface.co/settings/tokens",
-    }
-    if selected_prov in KEY_DOCS:
-        st.markdown(f"<span style='font-family:monospace;color:#606080;font-size:0.78rem;'>{KEY_DOCS[selected_prov]}</span>", unsafe_allow_html=True)
-    api_key = st.text_input("API Key", value=current_key, type="password")
-else:
-    api_key = ""
-
-base_url = ""
-if prov_info["needs_url"] or selected_prov == "lm_studio":
-    base_url = st.text_input("Base URL", value=get_setting("llm_base_url", "http://localhost:1234/v1"))
-
-# Ollama quick tools
-if selected_prov == "ollama":
-    st.markdown("<span style='font-family:monospace;color:#a0a0c0;font-size:0.82rem;'>Ollama: make sure Ollama is running before using. Install from ollama.com</span>", unsafe_allow_html=True)
-    c1, c2 = st.columns(2)
-    with c1:
-        if st.button("Check Ollama Status"):
-            try:
-                import requests
-                r = requests.get("http://localhost:11434/api/tags", timeout=3)
-                models_list = [m["name"] for m in r.json().get("models", [])]
-                st.success(f"Ollama running. Models: {', '.join(models_list) or 'none pulled yet'}")
-            except Exception as e:
-                st.error(f"Ollama offline: {e}")
-    with c2:
-        pull_model = st.text_input("Pull model", placeholder="llama3.2:3b")
-        if st.button("Pull Model"):
-            if pull_model.strip():
-                with st.spinner(f"Pulling {pull_model}..."):
-                    try:
-                        import requests
-                        r = requests.post("http://localhost:11434/api/pull", json={"name": pull_model, "stream": False}, timeout=300)
-                        st.success(f"Pulled: {pull_model}")
-                    except Exception as e:
-                        st.error(f"Pull failed: {e}")
-
-    if st.button("Hardware Check"):
-        try:
-            from llm.providers import check_hardware
-            hw = check_hardware()
-            st.json(hw)
-        except Exception as e:
-            st.error(str(e))
-
-if st.button("Save LLM Settings", use_container_width=True):
-    save_setting("llm_provider", selected_prov)
-    save_setting("llm_model", selected_model)
-    if api_key:
-        save_setting("llm_api_key", api_key)
-    if base_url:
-        save_setting("llm_base_url", base_url)
-    play_sfx("success")
-    st.success("LLM settings saved.")
-
-# ─── Test LLM ─────────────────────────────────────────────────────────────────
-if st.button("Test LLM Connection"):
-    try:
-        from llm.providers import LLMConfig, chat
-        cfg = LLMConfig(
-            provider=selected_prov,
-            model=selected_model,
-            api_key=api_key or get_setting("llm_api_key", ""),
-            base_url=base_url or get_setting("llm_base_url", ""),
-        )
-        reply = chat(cfg, [{"role": "user", "content": "Reply with exactly: 'Connection verified.' and nothing else."}])
-        st.success(f"LLM responded: {reply}")
-    except Exception as e:
-        st.error(f"Connection failed: {e}")
+cur_llm = get_setting("llm_provider", "ollama")
+cur_model = get_setting("llm_model", "")
+st.markdown(f"**Current:** `{cur_llm}` / `{cur_model or 'not set'}`")
+st.page_link("pages/11_LLM_Setup.py", label="Open LLM Setup Wizard", icon="🧠")
 
 # ─── Video quality ────────────────────────────────────────────────────────────
 rune_divider("Video Generation")

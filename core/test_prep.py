@@ -1,5 +1,5 @@
 """
-Standardized test prep engine for Arcane University.
+Standardized test prep engine for The God Factory University.
 Manages GED / SAT / ACT / GRE practice sessions with timed mode and scoring.
 """
 from __future__ import annotations

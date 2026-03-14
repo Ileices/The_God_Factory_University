@@ -16,10 +16,10 @@ from core.database import (
     get_setting, save_chat_history, get_chat_history, bulk_import_json,
     save_llm_generated, add_xp, unlock_achievement,
 )
-from ui.theme import inject_theme, arcane_header, rune_divider, play_sfx, stat_card, help_button, sanitize_llm_output
+from ui.theme import inject_theme, gf_header, rune_divider, play_sfx, stat_card, help_button, sanitize_llm_output
 
 inject_theme()
-arcane_header("Professor AI", "Your boundless guide through the arcane.")
+gf_header("Professor AI", "Ileices — your blunt, brilliant guide at The God Factory.")
 help_button("professor-chat")
 
 # ─── Provider status bar ──────────────────────────────────────────────────────
@@ -50,12 +50,13 @@ def get_professor():
     return Professor(session_id="main")
 
 # ─── Action tabs ─────────────────────────────────────────────────────────────
-tab_chat, tab_gen, tab_grade, tab_quiz, tab_rabbit, tab_guide = st.tabs([
+tab_chat, tab_gen, tab_grade, tab_quiz, tab_rabbit, tab_history, tab_guide = st.tabs([
     "Chat",
     "Generate Curriculum",
     "Grade Work",
     "Create Quiz",
     "Research Rabbit Hole",
+    "Chat History",
     "App Guide",
 ])
 
@@ -63,7 +64,26 @@ tab_chat, tab_gen, tab_grade, tab_quiz, tab_rabbit, tab_guide = st.tabs([
 with tab_chat:
     rune_divider("Conversation")
     help_button("professor-chat")
-    session_id = "main"
+
+    # Session selector
+    if "chat_session_id" not in st.session_state:
+        st.session_state["chat_session_id"] = "main"
+
+    s1, s2 = st.columns([3, 1])
+    with s1:
+        session_id = st.text_input("Session", value=st.session_state["chat_session_id"],
+                                   key="session_input", label_visibility="collapsed",
+                                   placeholder="Session name (e.g. 'main', 'calculus-help')")
+        if session_id != st.session_state["chat_session_id"]:
+            st.session_state["chat_session_id"] = session_id
+            st.rerun()
+    with s2:
+        new_name = f"chat-{int(time.time())}"
+        if st.button("New Chat", use_container_width=True):
+            st.session_state["chat_session_id"] = new_name
+            st.rerun()
+
+    session_id = st.session_state["chat_session_id"]
     history = get_chat_history(session_id)
 
     chat_box = st.container()
@@ -106,6 +126,45 @@ with tab_gen:
         "course JSON that you can import into the Library.</span>",
         unsafe_allow_html=True,
     )
+
+    # Bulk course info for LLM context
+    from core.database import get_all_courses, get_modules
+    with st.expander("Existing Courses (copy for LLM context)"):
+        _all_courses = get_all_courses()
+        if _all_courses:
+            _lines = []
+            for c in _all_courses:
+                cid = c.get("course_id", c.get("id", ""))
+                title = c.get("title", "")
+                data = json.loads(c.get("data") or "{}")
+                prereqs = data.get("recommended_prerequisites", data.get("prerequisites", []))
+                diff = data.get("difficulty_level", "")
+                credits = c.get("credits", data.get("credits", ""))
+                mods = get_modules(c["id"])
+                mod_names = [m["title"] for m in mods]
+                line = f"{cid} | {title}"
+                if diff:
+                    line += f" | {diff}"
+                if credits:
+                    line += f" | {credits}cr"
+                if prereqs:
+                    line += f" | prereqs: {', '.join(prereqs)}"
+                if mod_names:
+                    line += f" | modules: {', '.join(mod_names[:5])}"
+                    if len(mod_names) > 5:
+                        line += f"... (+{len(mod_names)-5})"
+                _lines.append(line)
+            bulk_text = "\n".join(_lines)
+            st.code(bulk_text, language="text")
+            st.download_button(
+                "Download Course List",
+                bulk_text,
+                file_name="course_catalog.txt",
+                mime="text/plain",
+                use_container_width=True,
+            )
+        else:
+            st.info("No courses yet. Generate or import one first.")
 
     topic = st.text_area(
         "Topics / subject matter",
@@ -190,10 +249,11 @@ with tab_quiz:
                 try:
                     prof = get_professor()
                     import json as _json
-                    quiz_raw = prof.generate_quiz({"title": quiz_topic, "core_terms": []}, n_q)
+                    resp = prof.generate_quiz({"title": quiz_topic, "core_terms": []}, n_q)
                     play_sfx("collect")
                     try:
-                        quiz = _json.loads(quiz_raw) if isinstance(quiz_raw, str) else quiz_raw
+                        raw = resp.parsed_json if hasattr(resp, 'parsed_json') and resp.parsed_json else _json.loads(str(resp))
+                        quiz = raw if isinstance(raw, dict) else {"questions": []}
                     except Exception:
                         quiz = {"questions": []}
                     st.success(f"Quiz ready: {len(quiz.get('questions', []))} questions")
@@ -230,13 +290,14 @@ with tab_rabbit:
                 try:
                     prof = get_professor()
                     import json as _json2
-                    result_raw = prof.research_rabbit_hole(seed_term)
+                    resp2 = prof.research_rabbit_hole(seed_term)
                     add_xp(20, f"Explored: {seed_term}", "rabbit_hole")
                     play_sfx("xp_gain")
                     try:
-                        result = _json2.loads(result_raw) if isinstance(result_raw, str) else result_raw
+                        raw2 = resp2.parsed_json if hasattr(resp2, 'parsed_json') and resp2.parsed_json else _json2.loads(str(resp2))
+                        result = raw2 if isinstance(raw2, dict) else {"term": seed_term, "overview": str(resp2)}
                     except Exception:
-                        result = {"term": seed_term, "overview": str(result_raw)}
+                        result = {"term": seed_term, "overview": str(resp2)}
                     st.markdown(f"### {result.get('term', seed_term)}")
                     st.write(result.get("overview", ""))
                     for key in ("history", "open_problems", "surprising_connections", "hands_on", "papers"):
@@ -251,12 +312,55 @@ with tab_rabbit:
                 except Exception as e:
                     st.error(f"Failed: {e}")
 
-# ── Tab 6: App Guide ─────────────────────────────────────────────────────────
+# ── Tab 6: Chat History Browser ───────────────────────────────────────────────
+with tab_history:
+    rune_divider("Chat History")
+    from core.chat_store import list_sessions, load_session, label_session, export_for_llm
+
+    sessions = list_sessions()
+    if not sessions:
+        st.info("No saved chat sessions yet. Start chatting in the Chat tab.")
+    else:
+        st.markdown(f"**{len(sessions)} saved sessions**")
+
+        # Session list
+        for s in sessions[:30]:
+            sid = s.get("session_id", "")
+            label = s.get("label", sid)
+            count = s.get("message_count", 0)
+            with st.expander(f"{label}  ({count} messages)"):
+                new_label = st.text_input("Label", value=label, key=f"lbl_{sid}")
+                if new_label != label:
+                    label_session(sid, new_label)
+
+                msgs = load_session(sid)
+                for msg in msgs[-30:]:
+                    role = msg.get("role", "unknown")
+                    icon = "user" if role == "user" else "assistant"
+                    with st.chat_message(icon):
+                        st.markdown(sanitize_llm_output(msg.get("content", "")[:1000]))
+
+                c1, c2 = st.columns(2)
+                with c1:
+                    if st.button("Load in Chat Tab", key=f"load_{sid}"):
+                        st.session_state["chat_session_id"] = sid
+                        st.rerun()
+                with c2:
+                    llm_text = export_for_llm(sid)
+                    st.download_button(
+                        "Export for LLM",
+                        llm_text,
+                        file_name=f"chat_{sid}.txt",
+                        mime="text/plain",
+                        key=f"exp_{sid}",
+                    )
+
+# ── Tab 7: App Guide ─────────────────────────────────────────────────────────
 with tab_guide:
     rune_divider("App Guide — Ask About Any Feature")
     st.markdown(
         "<span style='color:#a0a0c0;font-family:monospace;font-size:0.85rem;'>"
-        "Ask the Professor how to use any feature of Arcane University. "
+        "Ask the Professor how to use any feature of The God Factory University. "
         "The Professor reads the app documentation and explains in depth — "
         "without revealing any code secrets.</span>",
         unsafe_allow_html=True,

@@ -1,5 +1,5 @@
 """
-Weekly quest logic for Arcane University.
+Weekly quest logic for The God Factory University.
 Extracted from database.py for modularity (DEVELOPMENT.md Rule 5).
 """
 from __future__ import annotations

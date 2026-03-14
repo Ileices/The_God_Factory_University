@@ -15,10 +15,10 @@ from core.database import (
     get_enrollment_date, time_to_degree_days, compute_gpa, credits_earned, tx,
 )
 from core import db_activity
-from ui.theme import inject_theme, arcane_header, rune_divider, stat_card, help_button
+from ui.theme import inject_theme, gf_header, rune_divider, stat_card, help_button
 
 inject_theme()
-arcane_header("Student Profile", "Your academic identity and preferences.")
+gf_header("Student Profile", "Your academic identity and preferences.")
 help_button("student-profile")
 
 # ─── Basic Info ───────────────────────────────────────────────────────────────

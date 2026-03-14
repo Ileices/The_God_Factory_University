@@ -1,5 +1,5 @@
 """
-GPA, grade scale, degree tracks, and credit calculation for Arcane University.
+GPA, grade scale, degree tracks, and credit calculation for The God Factory University.
 Extracted from database.py for modularity (DEVELOPMENT.md Rule 5).
 """
 from __future__ import annotations

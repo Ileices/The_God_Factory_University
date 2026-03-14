@@ -199,7 +199,7 @@ The database will grow significantly. Follow these rules:
 
 ## RULE 6: No Emojis Anywhere
 
-The project uses a dungeon-academic ASCII theme. No emojis in:
+The project uses a dark-academic ASCII theme. No emojis in:
 - UI text
 - Code comments
 - Help entries
@@ -233,13 +233,13 @@ Page title — one-line description.
 from __future__ import annotations
 import streamlit as st
 from core.database import ...
-from ui.theme import inject_theme, arcane_header, rune_divider, help_button
+from ui.theme import inject_theme, gf_header, rune_divider, help_button
 
 inject_theme()
 
 # Sidebar is handled by app.py — pages just render their content
 
-arcane_header("Page Title", "Subtitle text")
+gf_header("Page Title", "Subtitle text")
 help_button("page-topic-key")
 
 # ... page content using backend functions and theme widgets ...

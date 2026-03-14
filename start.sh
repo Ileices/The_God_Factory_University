@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ── Arcane University: Start (macOS / Linux) ──────────────────────────────
+# ── The God Factory University: Start (macOS / Linux) ──────────────────────────────
 set -e
 cd "$(dirname "$0")"
 
@@ -12,5 +12,5 @@ source .venv/bin/activate
 
 python -c "from core.database import init_db; init_db()" 2>/dev/null || true
 
-echo "[START] Launching Arcane University..."
+echo "[START] Launching The God Factory University..."
 streamlit run app.py --server.headless false

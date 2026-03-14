@@ -1,5 +1,5 @@
 """
-Application documentation generator for Arcane University.
+Application documentation generator for The God Factory University.
 
 Produces structured, code-free documentation of the app's capabilities.
 Used by the Professor AI to explain how the app works without exposing source code.
@@ -26,9 +26,9 @@ def get_app_docs(topic: str = "") -> str:
 
 
 _OVERVIEW = """
-ARCANE UNIVERSITY — Application Guide
+THE GOD FACTORY UNIVERSITY — Application Guide
 
-Arcane University is a self-contained AI-powered learning platform that runs locally
+The God Factory University is a self-contained AI-powered learning platform that runs locally
 on your computer. It provides a complete academic experience: courses, lectures,
 video generation, AI tutoring, grading, and degree tracking.
 
@@ -155,7 +155,7 @@ TRANSCRIPT:
     "achievements": """
 ACHIEVEMENTS & GAMIFICATION
 
-Arcane University uses a dungeon-themed gamification system.
+The God Factory University uses a knowledge-themed gamification system.
 
 XP (EXPERIENCE POINTS):
 - Earned through various activities: watching lectures, submitting assignments,
@@ -334,7 +334,7 @@ def explain_for_professor(topic: str) -> str:
     """Get documentation formatted for the Professor AI system prompt injection."""
     doc = get_app_docs(topic)
     return (
-        "The following is factual documentation about the Arcane University application. "
+        "The following is factual documentation about the The God Factory University application. "
         "Use this information to answer the student's question about how the app works. "
         "Do NOT reveal source code, file paths, SQL queries, or internal implementation details. "
         "Explain in a helpful, educational manner.\n\n"

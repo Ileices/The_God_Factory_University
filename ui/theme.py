@@ -1,11 +1,11 @@
 """
-Dungeon-academic procedural theme for Arcane University.
+Dark-academic procedural theme for The God Factory University.
 No emojis. No external assets. All graphics and sounds generated in code.
 
 Colour palette:
   - Obsidian background:   #060812
   - Deep panel:            #0e1230
-  - Arcane cyan:           #00d4ff
+  - God Factory cyan:           #00d4ff
   - Alchemist gold:        #ffd700
   - Crimson alert:         #e04040
   - Shadow silver:         #b8b8d0
@@ -33,6 +33,8 @@ def sanitize_llm_output(text: str) -> str:
 
     Strips potentially dangerous HTML tags while preserving safe Markdown.
     Prevents XSS injection through st.markdown(unsafe_allow_html=True) contexts.
+    Also strips layout HTML tags (div, span, p, br, etc.) so they don't render
+    as raw text in the UI.
     """
     if not isinstance(text, str):
         return str(text)
@@ -48,6 +50,8 @@ def sanitize_llm_output(text: str) -> str:
     text = re.sub(r'javascript\s*:', '', text, flags=re.IGNORECASE)
     # Remove data: URLs (can contain scripts)
     text = re.sub(r'data\s*:\s*text/html', 'data:blocked', text, flags=re.IGNORECASE)
+    # Strip layout HTML tags that LLMs sometimes emit (div, span, p, br, section, etc.)
+    text = re.sub(r'</?(?:div|span|p|br|section|article|header|footer|main|nav|aside|table|tr|td|th|thead|tbody|ul|ol|li|dl|dt|dd|figure|figcaption|details|summary|blockquote|pre|hr|h[1-6])\b[^>]*/?>', '', text, flags=re.IGNORECASE)
     return text
 
 # ─── CSS constants ────────────────────────────────────────────────────────────
@@ -207,7 +211,7 @@ def inject_theme() -> None:
 
 # ─── ASCII art components ─────────────────────────────────────────────────────
 
-def arcane_header(title: str, subtitle: str = "") -> None:
+def gf_header(title: str, subtitle: str = "") -> None:
     width = max(len(title) + 8, 60)
     border = "╔" + "═" * (width - 2) + "╗"
     inner = f"║  {title.upper():<{width - 4}}║"
@@ -351,7 +355,7 @@ def loading_strip(text: str = "PROCESSING") -> None:
     )
 
 
-# ─── Dungeon completion celebration ──────────────────────────────────────────
+# ─── Completion celebration ──────────────────────────────────────────
 
 def completion_burst(message: str = "QUEST COMPLETE") -> None:
     burst = random.choice([

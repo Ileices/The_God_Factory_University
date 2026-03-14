@@ -16,10 +16,10 @@ from core.database import (
     get_setting, set_setting, add_xp, tx,
 )
 from core import placement
-from ui.theme import inject_theme, arcane_header, rune_divider, stat_card, help_button
+from ui.theme import inject_theme, gf_header, rune_divider, stat_card, help_button
 
 inject_theme()
-arcane_header("Placement Testing", "Discover your starting level in any subject.")
+gf_header("Placement Testing", "Discover your starting level in any subject.")
 help_button("placement-testing")
 
 # ─── Subject Selection ────────────────────────────────────────────────────────

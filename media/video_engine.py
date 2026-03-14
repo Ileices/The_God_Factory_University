@@ -1,5 +1,5 @@
 """
-Completely rebuilt video engine for Arcane University.
+Completely rebuilt video engine for The God Factory University.
 
 Core fixes vs the broken original:
   1. Uses imageio-ffmpeg (bundled binary - no system ffmpeg required)
@@ -61,7 +61,7 @@ from media.audio_engine import (
 ROOT = Path(__file__).resolve().parent.parent
 CACHE_DIR = ROOT / "exports" / "_video_cache"
 
-# ─── Colour palette (dungeon academic) ────────────────────────────────────────
+# ─── Colour palette (dark academic) ────────────────────────────────────────
 PALETTE = {
     "bg_dark":   (6,  8, 18),
     "bg_mid":    (14, 18, 38),

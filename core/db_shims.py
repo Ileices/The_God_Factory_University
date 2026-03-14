@@ -1,5 +1,5 @@
 """
-Compatibility shims (aliases) used by UI pages for Arcane University.
+Compatibility shims (aliases) used by UI pages for The God Factory University.
 Extracted from database.py for modularity (DEVELOPMENT.md Rule 5).
 
 Every function here delegates to the canonical database.py function

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ── Arcane University: Setup (macOS / Linux) ──────────────────────────────
+# ── The God Factory University: Setup (macOS / Linux) ──────────────────────────────
 set -e
 cd "$(dirname "$0")"
 

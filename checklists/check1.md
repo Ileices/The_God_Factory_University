@@ -83,7 +83,7 @@ Cross-reference: [check2.md](check2.md) covers the engineering contract and inte
 - [ ] Add optional "study music only" and "narration only" output modes
 
 ## 7. Gamification and Dungeon Theme
-- [x] Theme system implemented (`ui/theme.py`) with full dungeon-academic CSS
+- [x] Theme system implemented (`ui/theme.py`) with full dark-academic CSS
 - [x] Color palette: obsidian bg, arcane cyan, gold, crimson, success green
 - [x] XP event model implemented with typed events (video, quiz, assignment, etc.)
 - [x] 10 dungeon levels: Seeker -> Initiate -> Acolyte -> Scholar -> Adept -> Mage -> Archmage -> Sage -> Oracle -> Archon

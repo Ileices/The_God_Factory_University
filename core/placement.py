@@ -1,5 +1,5 @@
 """
-Placement testing engine for Arcane University.
+Placement testing engine for The God Factory University.
 Adaptive difficulty, AI-generated questions, and grade-level recommendation.
 """
 from __future__ import annotations

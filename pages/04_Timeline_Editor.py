@@ -12,10 +12,10 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from core.database import get_all_courses, get_modules, get_lectures
-from ui.theme import inject_theme, arcane_header, rune_divider, play_sfx, help_button
+from ui.theme import inject_theme, gf_header, rune_divider, play_sfx, help_button
 
 inject_theme()
-arcane_header("Timeline Editor", "Reorder and tune scenes before rendering.")
+gf_header("Timeline Editor", "Reorder and tune scenes before rendering.")
 help_button("reordering-scenes")
 
 EXPORT_DIR = ROOT / "exports"

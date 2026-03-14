@@ -20,12 +20,12 @@ from core.database import (
     get_enrollment_date, time_to_degree_days, get_terms, get_assignments_by_term,
 )
 from ui.theme import (
-    inject_theme, arcane_header, rune_divider, render_gpa_display,
+    inject_theme, gf_header, rune_divider, render_gpa_display,
     degree_display, deadline_pill, help_button,
 )
 
 inject_theme()
-arcane_header("Grades & Transcript", "Your academic record in the arcane order.")
+gf_header("Grades & Transcript", "Your academic record at The God Factory.")
 help_button("gpa-calculation")
 
 student_name = get_setting("student_name", "Scholar")

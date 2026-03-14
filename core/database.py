@@ -1,5 +1,5 @@
 """
-SQLite persistence layer for Arcane University.
+SQLite persistence layer for The God Factory University.
 All tables are created on first import. Thread-safe via WAL mode.
 
 Sub-modules (DEVELOPMENT.md Rule 5):
@@ -316,7 +316,7 @@ LEVELS = [
     (700,   "Adept"),
     (1500,  "Sorcerer"),
     (3000,  "Sage"),
-    (6000,  "Arcane"),
+    (6000,  "Transcendent"),
     (10000, "Grandmaster"),
     (20000, "Luminary"),
     (50000, "Archon"),
@@ -598,6 +598,9 @@ def append_chat(session_id: str, role: str, content: str) -> None:
             "INSERT INTO chat_history (session_id,role,content) VALUES (?,?,?)",
             (session_id, role, content),
         )
+    # Also persist to labelled file on disk
+    from core.chat_store import save_message
+    save_message(session_id, role, content)
 
 
 def get_chat(session_id: str, limit: int = 50) -> list[dict]:

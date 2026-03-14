@@ -1,5 +1,5 @@
 """
-Achievement definitions, seeding, and trigger logic for Arcane University.
+Achievement definitions, seeding, and trigger logic for The God Factory University.
 Extracted from database.py for modularity (DEVELOPMENT.md Rule 5).
 """
 from __future__ import annotations
@@ -14,7 +14,7 @@ _ACHIEVEMENT_DEFS = [
     ("perfect_score",   "Flawless Rune",    "Score 100% on any assignment",         "academic", 150),
     ("speed_reader",    "Swift Scholar",    "Complete a lecture in one session",    "efficiency", 100),
     ("xp_1000",         "Novice Mage",      "Earn 1000 XP",                         "xp",       100),
-    ("xp_5000",         "Arcane Adept",     "Earn 5000 XP",                         "xp",       250),
+    ("xp_5000",         "Transcendent Adept",     "Earn 5000 XP",                         "xp",       250),
     ("degree_cert",     "Certified",        "Earn Certificate eligibility",         "degree",   500),
     ("degree_assoc",    "Associate Sage",   "Earn Associate eligibility",           "degree",   1000),
     ("degree_bachelor", "Bachelor Mage",    "Earn Bachelor eligibility",            "degree",   2000),

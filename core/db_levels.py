@@ -1,5 +1,5 @@
 """
-Grade-level system for Arcane University.
+Grade-level system for The God Factory University.
 Provides K-12, undergraduate, graduate, and doctoral levels.
 Extracted as sub-module per DEVELOPMENT.md Rule 5.
 """

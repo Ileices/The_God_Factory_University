@@ -1,5 +1,5 @@
 """
-Audio engine for Arcane University.
+Audio engine for The God Factory University.
 
 Features:
 - Edge-TTS (Microsoft Neural, 300+ voices, free – best quality)

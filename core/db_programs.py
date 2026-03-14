@@ -1,5 +1,5 @@
 """
-Programs & curriculum engine for Arcane University.
+Programs & curriculum engine for The God Factory University.
 Degree programs, requirements, enrollment, and progress tracking.
 """
 from __future__ import annotations
@@ -11,13 +11,13 @@ import uuid
 
 _DEFAULT_PROGRAMS: list[tuple[str, str, str, str, str, int]] = [
     # (id, name, level, school, description, total_credits)
-    ("cert_cs", "Certificate in Computer Science", "Certificate", "School of Arcane Computing", "Foundational CS skills.", 15),
+    ("cert_cs", "Certificate in Computer Science", "Certificate", "School of Computer Science", "Foundational CS skills.", 15),
     ("cert_math", "Certificate in Mathematics", "Certificate", "School of Numerical Sorcery", "Core math fundamentals.", 15),
-    ("assoc_gen", "Associate of General Studies", "Associate", "College of the Arcane Arts", "Broad liberal arts foundation.", 60),
-    ("bach_cs", "Bachelor of Computer Science", "Bachelor", "School of Arcane Computing", "Complete CS curriculum.", 120),
+    ("assoc_gen", "Associate of General Studies", "Associate", "College of Liberal Arts", "Broad liberal arts foundation.", 60),
+    ("bach_cs", "Bachelor of Computer Science", "Bachelor", "School of Computer Science", "Complete CS curriculum.", 120),
     ("bach_eng", "Bachelor of English", "Bachelor", "School of Ancient Tongues", "Literature and composition.", 120),
-    ("mast_cs", "Master of Computer Science", "Master", "School of Arcane Computing", "Advanced CS research.", 150),
-    ("doct_cs", "Doctorate in Computer Science", "Doctorate", "School of Arcane Computing", "Original research contribution.", 180),
+    ("mast_cs", "Master of Computer Science", "Master", "School of Computer Science", "Advanced CS research.", 150),
+    ("doct_cs", "Doctorate in Computer Science", "Doctorate", "School of Computer Science", "Original research contribution.", 180),
 ]
 
 

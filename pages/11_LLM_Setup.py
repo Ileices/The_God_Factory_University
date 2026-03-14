@@ -15,10 +15,10 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from core.database import get_setting, save_setting
-from ui.theme import inject_theme, arcane_header, rune_divider, stat_card, play_sfx, sanitize_llm_output
+from ui.theme import inject_theme, gf_header, rune_divider, stat_card, play_sfx, sanitize_llm_output
 
 inject_theme()
-arcane_header("LLM Setup Wizard", "Configure your AI model provider step by step.")
+gf_header("LLM Setup Wizard", "Configure your AI model provider step by step.")
 
 # ─── Hardware Detection ───────────────────────────────────────────────────────
 def _detect_hardware() -> dict:
@@ -39,7 +39,7 @@ def _test_provider(provider: str, api_key: str, model: str, base_url: str) -> di
     )
     start = time.time()
     try:
-        result = chat(cfg, [{"role": "user", "content": "Respond with exactly: Hello from Arcane University"}])
+        result = chat(cfg, [{"role": "user", "content": "Respond with exactly: Hello from The God Factory University"}])
         elapsed = round((time.time() - start) * 1000)
         text = str(result)[:200]
         tokens = estimate_tokens(text)
@@ -135,7 +135,7 @@ if wizard_path:
         stat_card("Disk Free", f"{free_gb} GB", colour="#40dc80" if free_gb > 10 else "#e04040")
 
     st.markdown(
-        f"**Recommended model**: `{hw['recommended_model']}` — {hw['recommended_reason']}"
+        f"**Recommended model**: `{hw['recommended_model']}` — {hw.get('recommendation_reason', hw.get('recommended_reason', ''))}"
     )
 
     # VRAM guide
@@ -333,7 +333,7 @@ if wizard_path == "cloud":
         "GitHub Models (Free with GitHub Account)": {
             "key": "github",
             "url": "https://models.inference.ai.azure.com",
-            "models": ["gpt-4o", "gpt-4o-mini", "meta-llama-3.1-70b-instruct", "mistral-large", "phi-3-medium-instruct-128k"],
+            "models": ["gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano", "o4-mini", "o3-mini", "Meta-Llama-3.1-405B-Instruct", "Meta-Llama-3.1-70B-Instruct", "Mistral-large-2411", "Phi-4", "DeepSeek-R1"],
             "signup": "github.com/settings/tokens",
             "key_prefix": "ghp_",
             "cost": "FREE during preview — uses your GitHub Personal Access Token",
@@ -350,7 +350,7 @@ if wizard_path == "cloud":
         "OpenAI (GPT-4o, Best Quality)": {
             "key": "openai",
             "url": "https://api.openai.com/v1",
-            "models": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo"],
+            "models": ["gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano", "gpt-4o", "gpt-4o-mini", "o3-mini"],
             "signup": "platform.openai.com",
             "key_prefix": "sk-",
             "cost": "PAID — gpt-4o: ~$2.50 input / $10 output per 1M tokens; gpt-4o-mini: ~$0.15 / $0.60",
@@ -367,7 +367,7 @@ if wizard_path == "cloud":
         "Anthropic Claude (200K Context)": {
             "key": "anthropic",
             "url": "https://api.anthropic.com",
-            "models": ["claude-sonnet-4-20250514", "claude-3-haiku-20240307"],
+            "models": ["claude-sonnet-4-20250514", "claude-3-5-haiku-20241022", "claude-3-5-sonnet-20241022"],
             "signup": "console.anthropic.com",
             "key_prefix": "sk-ant-",
             "cost": "PAID — Sonnet: ~$3/$15 per 1M tokens; Haiku: ~$0.25/$1.25",
@@ -400,7 +400,7 @@ if wizard_path == "cloud":
         "Together AI (Free $5 Credit)": {
             "key": "together",
             "url": "https://api.together.xyz/v1",
-            "models": ["meta-llama/Llama-3.1-70B-Instruct-Turbo", "mistralai/Mixtral-8x7B-Instruct-v0.1", "Qwen/Qwen2.5-72B-Instruct-Turbo"],
+            "models": ["meta-llama/Llama-3.3-70B-Instruct-Turbo", "meta-llama/Llama-3.1-70B-Instruct-Turbo", "Qwen/Qwen2.5-72B-Instruct-Turbo", "deepseek-ai/DeepSeek-R1"],
             "signup": "api.together.xyz",
             "key_prefix": "",
             "cost": "FREE $5 credit on signup; then pay-as-you-go (Llama 8B: ~$0.18/1M tokens)",
@@ -415,7 +415,7 @@ if wizard_path == "cloud":
         "HuggingFace Inference (Free Tier)": {
             "key": "huggingface",
             "url": "https://api-inference.huggingface.co/v1",
-            "models": ["meta-llama/Llama-3.1-8B-Instruct", "mistralai/Mistral-7B-Instruct-v0.3"],
+            "models": ["meta-llama/Llama-3.3-70B-Instruct", "meta-llama/Llama-3.1-8B-Instruct", "Qwen/Qwen2.5-72B-Instruct", "mistralai/Mistral-7B-Instruct-v0.3"],
             "signup": "huggingface.co/settings/tokens",
             "key_prefix": "hf_",
             "cost": "FREE tier for Inference API (rate-limited); Pro for dedicated endpoints",

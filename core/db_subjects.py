@@ -1,5 +1,5 @@
 """
-Subject taxonomy for Arcane University.
+Subject taxonomy for The God Factory University.
 Hierarchical subject tree: domain → field → subfield.
 Extracted as sub-module per DEVELOPMENT.md Rule 5.
 """

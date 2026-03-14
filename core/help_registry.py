@@ -1,5 +1,5 @@
 """
-Central help registry for Arcane University.
+Central help registry for The God Factory University.
 
 Maps (page_key, topic_key) -> help entry with title, text, and anchor.
 Used by the help_button() utility and pages/10_Help.py.
@@ -20,9 +20,9 @@ def _reg(anchor: str, title: str, text: str) -> None:
 
 # ─── Dashboard ────────────────────────────────────────────────────────────────
 _reg("dashboard-overview", "Dashboard Overview",
-     "The Dashboard is the home screen of Arcane University. It shows your current "
+     "The Dashboard is the home screen of The God Factory University. It shows your current "
      "status at a glance: total courses, lectures completed, total XP earned, and "
-     "your current rank in the dungeon hierarchy.\n\n"
+     "your current rank in the progression hierarchy.\n\n"
      "Below the stats you will find a Quick Start guide walking you through the "
      "recommended workflow: import a course, review lectures, render videos, "
      "watch them, submit assignments, earn XP, and unlock achievements.")
@@ -46,7 +46,7 @@ _reg("xp-and-levels", "XP and Levels",
      "- Rendering videos (+5 XP)\n\n"
      "10 Ranks:\n"
      "Seeker (0) -> Initiate (100) -> Scholar (300) -> Adept (700) -> "
-     "Sorcerer (1500) -> Sage (3000) -> Arcane (6000) -> Grandmaster (10000) -> "
+     "Sorcerer (1500) -> Sage (3000) -> Transcendent (6000) -> Grandmaster (10000) -> "
      "Luminary (20000) -> Archon (50000)")
 
 # ─── Library ──────────────────────────────────────────────────────────────────
@@ -208,7 +208,7 @@ _reg("achievement-system", "Achievement System",
      "- And more...")
 
 _reg("level-system", "Level System",
-     "10 dungeon ranks based on total XP:\n\n"
+     "10 progression ranks based on total XP:\n\n"
      "| Level | Title | XP Required |\n"
      "|-------|-------|-------------|\n"
      "| 1 | Seeker | 0 |\n"
@@ -217,7 +217,7 @@ _reg("level-system", "Level System",
      "| 4 | Adept | 700 |\n"
      "| 5 | Sorcerer | 1,500 |\n"
      "| 6 | Sage | 3,000 |\n"
-     "| 7 | Arcane | 6,000 |\n"
+     "| 7 | Transcendent | 6,000 |\n"
      "| 8 | Grandmaster | 10,000 |\n"
      "| 9 | Luminary | 20,000 |\n"
      "| 10 | Archon | 50,000 |")
@@ -298,7 +298,7 @@ _reg("llm-test", "LLM Connectivity Test",
 
 # ─── Additional topics ────────────────────────────────────────────────────────
 _reg("first-launch", "First Launch",
-     "On your very first launch, Arcane University:\n\n"
+     "On your very first launch, The God Factory University:\n\n"
      "1. Creates the SQLite database and seeds default settings\n"
      "2. Seeds 17 achievement definitions and weekly quests\n"
      "3. Auto-imports the bundled demo course from `notes.txt` (if present)\n"

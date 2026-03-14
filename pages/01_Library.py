@@ -15,10 +15,10 @@ from core.database import (
     bulk_import_json, get_all_courses, get_modules, get_lectures,
     delete_course, get_progress, add_xp,
 )
-from ui.theme import inject_theme, arcane_header, rune_divider, progress_badge, play_sfx, help_button
+from ui.theme import inject_theme, gf_header, rune_divider, progress_badge, play_sfx, help_button
 
 inject_theme()
-arcane_header("Library", "Your collection of courses and arcane knowledge.")
+gf_header("Library", "Your collection of courses and knowledge.")
 help_button("browsing-courses")
 
 # ─── Bulk Import ─────────────────────────────────────────────────────────────

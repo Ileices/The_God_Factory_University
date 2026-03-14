@@ -1,4 +1,4 @@
-# Arcane University: Gap Analysis & Implementation Checklist
+# The God Factory University: Gap Analysis & Implementation Checklist
 
 Cross-references: [check1.md](check1.md) (product roadmap), [check2.md](check2.md) (engineering contract), [check3.md](check3.md) (academic structure)
 

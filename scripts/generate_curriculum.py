@@ -1,5 +1,5 @@
 """
-Curriculum generator for Arcane University (God Factory).
+Curriculum generator for The God Factory University (God Factory).
 
 Generates structured course JSON for all grade levels and subjects,
 ready for bulk import via core.database.bulk_import_json().
@@ -341,7 +341,7 @@ def import_to_db(all_courses: dict[str, list[dict]], dry_run: bool = False) -> t
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate Arcane University curriculum")
+    parser = argparse.ArgumentParser(description="Generate The God Factory University curriculum")
     parser.add_argument("--level", help="Generate for specific grade level (e.g. K, 9, freshman)")
     parser.add_argument("--domain", help="Generate for specific subject domain")
     parser.add_argument("--import-db", action="store_true", help="Import generated courses into database")

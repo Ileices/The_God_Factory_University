@@ -254,7 +254,7 @@ Animated lecture video renderer.
 
 | Name | Description |
 |------|-------------|
-| `PALETTE` | 10-colour dungeon-academic palette |
+| `PALETTE` | 10-colour dark-academic palette |
 
 ### Functions
 
@@ -268,7 +268,7 @@ Animated lecture video renderer.
 
 ## ui.theme
 
-Dungeon-academic CSS theme and UI widgets.
+Dark-academic CSS theme and UI widgets.
 
 ### Constants
 
@@ -283,7 +283,7 @@ Dungeon-academic CSS theme and UI widgets.
 |----------|-----------|---------|-------------|
 | `sanitize_llm_output` | `text` | `str` | Strip dangerous HTML/JS from LLM text |
 | `inject_theme` | | `None` | Inject CSS into Streamlit page |
-| `arcane_header` | `title, subtitle=""` | `None` | ASCII-box header |
+| `gf_header` | `title, subtitle=""` | `None` | ASCII-box header |
 | `rune_divider` | `label=""` | `None` | Styled horizontal divider |
 | `stat_card` | `label, value, delta="", colour="#00d4ff"` | `None` | Coloured metric card |
 | `xp_bar` | `current, maximum, label="XP"` | `None` | ASCII XP progress bar |

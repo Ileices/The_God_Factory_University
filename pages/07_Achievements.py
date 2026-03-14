@@ -12,12 +12,12 @@ sys.path.insert(0, str(ROOT))
 
 from core.database import get_all_achievements, get_xp_history, get_total_xp, get_level
 from ui.theme import (
-    inject_theme, arcane_header, rune_divider,
+    inject_theme, gf_header, rune_divider,
     achievement_card, xp_bar, level_badge, stat_card, help_button,
 )
 
 inject_theme()
-arcane_header("Achievements", "Your record of conquest in the arcane order.")
+gf_header("Achievements", "Your record of conquest at The God Factory.")
 help_button("achievement-system")
 
 total_xp = get_total_xp()
@@ -44,7 +44,7 @@ LEVELS = [
     (700,   "Adept",       "#8080ff"),
     (1500,  "Sorcerer",    "#c060ff"),
     (3000,  "Sage",        "#ffd700"),
-    (6000,  "Arcane",      "#ff8040"),
+    (6000,  "Transcendent",      "#ff8040"),
     (10000, "Grandmaster", "#ff4040"),
     (20000, "Luminary",    "#ff40c0"),
     (50000, "Archon",      "#ffffff"),

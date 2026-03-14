@@ -1,6 +1,6 @@
 # The God Factory University
 
-An AI-powered university built with Python and Streamlit. Generates animated lecture videos with neural narration, binaural beats, and a dungeon-academic theme. Features a Professor AI advisor, grading system with GPA/degrees, achievements, and support for 10 LLM providers (local and cloud).
+An AI-powered university built with Python and Streamlit. Generates animated lecture videos with neural narration, binaural beats, and a dark-academic theme. Features a Professor AI advisor, grading system with GPA/degrees, achievements, and support for 10 LLM providers (local and cloud).
 
 ---
 
@@ -69,7 +69,7 @@ chmod +x setup.sh start.sh
 - **Timeline Editor** -- Reorder scenes, adjust durations, re-render
 - **Batch Render** -- Queue lectures for overnight rendering
 - **Grades & Transcript** -- GPA calculation, degree progress (Certificate through Doctorate), transcript export
-- **Achievements** -- XP system, 10 dungeon ranks (Seeker to Archon), milestone badges
+- **Achievements** -- XP system, 10 progression ranks (Seeker to Archon), milestone badges
 - **Settings** -- Voice selection, binaural presets, LLM provider config, video quality profiles
 - **Diagnostics** -- System health, dependency checks, provider connectivity tests
 - **Help System** -- Contextual [?] buttons on every page, comprehensive help page
@@ -107,7 +107,7 @@ media/
   audio_engine.py       TTS, binaural beats, ambient pads
   video_engine.py       Animated video renderer (MoviePy)
 ui/
-  theme.py              Dungeon-academic CSS theme and widgets
+  theme.py              Dark-academic CSS theme and widgets
 pages/
   01_Library.py         Course browsing and import
   02_Lecture_Studio.py  Lecture playback and rendering

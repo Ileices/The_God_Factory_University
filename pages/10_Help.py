@@ -1,5 +1,5 @@
 """
-Help — Comprehensive interconnected help system for Arcane University.
+Help — Comprehensive interconnected help system for The God Factory University.
 Every feature links here with a topic anchor for contextual navigation.
 """
 
@@ -12,10 +12,10 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from core.help_registry import get_all_help, get_help
-from ui.theme import inject_theme, arcane_header, rune_divider
+from ui.theme import inject_theme, gf_header, rune_divider
 
 inject_theme()
-arcane_header("Help", "Your guide to every feature of Arcane University.")
+gf_header("Help", "Your guide to every feature of The God Factory University.")
 
 # ─── Check for topic query param for contextual navigation ────────────────────
 params = st.query_params

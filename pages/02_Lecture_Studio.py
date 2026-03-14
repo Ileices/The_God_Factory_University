@@ -17,10 +17,10 @@ from core.database import (
     get_progress, set_progress, save_assignment, submit_assignment,
     get_assignments, get_setting, unlock_achievement, add_xp,
 )
-from ui.theme import inject_theme, arcane_header, rune_divider, progress_badge, play_sfx, stat_card, help_button
+from ui.theme import inject_theme, gf_header, rune_divider, progress_badge, play_sfx, stat_card, help_button
 
 inject_theme()
-arcane_header("Lecture Studio", "Enter the chamber of knowledge.")
+gf_header("Lecture Studio", "Enter the chamber of knowledge.")
 help_button("playing-lectures")
 
 EXPORT_DIR = ROOT / "exports"

@@ -16,10 +16,10 @@ from core.database import (
     compute_gpa, credits_earned, tx,
 )
 from core import db_activity
-from ui.theme import inject_theme, arcane_header, rune_divider, stat_card, help_button
+from ui.theme import inject_theme, gf_header, rune_divider, stat_card, help_button
 
 inject_theme()
-arcane_header("Statistics", "Your academic analytics dashboard.")
+gf_header("Statistics", "Your academic analytics dashboard.")
 help_button("statistics-dashboard")
 
 # ─── Summary Cards ────────────────────────────────────────────────────────────

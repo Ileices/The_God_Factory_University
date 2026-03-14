@@ -1,5 +1,5 @@
 """
-Activity logging and analytics for Arcane University.
+Activity logging and analytics for The God Factory University.
 Instruments key user actions for the statistics dashboard.
 """
 from __future__ import annotations

@@ -12,10 +12,10 @@ sys.path.insert(0, str(ROOT))
 
 from core.database import get_all_courses, credits_earned, compute_gpa, tx
 from core import db_programs
-from ui.theme import inject_theme, arcane_header, rune_divider, stat_card, help_button
+from ui.theme import inject_theme, gf_header, rune_divider, stat_card, help_button
 
 inject_theme()
-arcane_header("Programs & Curriculum", "Degree programs and academic pathways.")
+gf_header("Programs & Curriculum", "Degree programs and academic pathways.")
 help_button("programs-overview")
 
 # ─── Current Academic Status ──────────────────────────────────────────────────

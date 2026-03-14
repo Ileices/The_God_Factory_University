@@ -1,5 +1,5 @@
 """
-Structured logging for Arcane University.
+Structured logging for The God Factory University.
 
 Provides JSON-formatted log entries for render jobs, provider calls,
 import operations, and general events. Logs to logs/university.log.
@@ -39,7 +39,7 @@ def _get_logger() -> logging.Logger:
     if _logger is not None:
         return _logger
     _ensure_log_dir()
-    _logger = logging.getLogger("arcane_university")
+    _logger = logging.getLogger("god_factory")
     _logger.setLevel(logging.DEBUG)
     handler = logging.FileHandler(str(LOG_FILE), encoding="utf-8")
     handler.setLevel(logging.DEBUG)
