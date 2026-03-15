@@ -82,11 +82,11 @@ Cross-reference: [check2.md](check2.md) covers the engineering contract and inte
 - [ ] Add audio loudness normalization target for exported videos
 - [ ] Add optional "study music only" and "narration only" output modes
 
-## 7. Gamification and Dungeon Theme
+## 7. Gamification and Theme
 - [x] Theme system implemented (`ui/theme.py`) with full dark-academic CSS
-- [x] Color palette: obsidian bg, arcane cyan, gold, crimson, success green
+- [x] Color palette: obsidian bg, accent cyan, gold, crimson, success green
 - [x] XP event model implemented with typed events (video, quiz, assignment, etc.)
-- [x] 10 dungeon levels: Seeker -> Initiate -> Acolyte -> Scholar -> Adept -> Mage -> Archmage -> Sage -> Oracle -> Archon
+- [x] 10 levels: Seeker -> Initiate -> Acolyte -> Scholar -> Adept -> Expert -> Transcendent -> Grandmaster -> Luminary -> Archon
 - [x] Achievements page scaffolded (`pages/07_Achievements.py`)
 - [x] `achievement_card()` supports both dict and positional args
 - [x] Procedural ASCII art headers (no external assets, no emojis)

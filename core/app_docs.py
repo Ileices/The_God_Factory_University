@@ -107,7 +107,7 @@ The Professor (named Ileices) is your AI tutor with multiple capabilities.
 
 CHAT:
 - Ask questions about any topic in a conversational interface
-- The professor uses Socratic questioning to deepen understanding
+- Professor Ileices uses Socratic questioning to deepen understanding
 - Chat history is saved across sessions
 
 GENERATE CURRICULUM:
